@@ -49,13 +49,15 @@ data/
   catalog.json      Symbol metadata (digits, pip, contract, spread, live adapters)
   SYM_TF.json       Compact bars: [t_sec, o, h, l, c, v]  (~10 MB total)
 scripts/
-  fetch_data.py     (Re)downloads history via yfinance — run occasionally to refresh
+  tv_feed.py        Minimal TradingView websocket datafeed (unofficial, paged history)
+  fetch_tv.py       Primary refresher — real TradingView OHLC (OANDA / Binance feeds)
+  fetch_data.py     Fallback refresher via yfinance (used if TV is unreachable)
 ```
 
 ### Data flow
 
 ```
-fetch_data.py ──► data/*.json ──► Data.bars(sym, tf) ──► Replay.all
+fetch_tv.py ──► data/*.json ──► Data.bars(sym, tf) ──► Replay.all
                                                               │ cursor (replay)
                                      Replay.visible() ◄────────┘
                                             │
@@ -66,19 +68,22 @@ fetch_data.py ──► data/*.json ──► Data.bars(sym, tf) ──► Repla
 
 ### Notes on data quality
 
-* **FX daily bars**: Yahoo's FX `1d` series carries `open ≈ close` (useless for candles),
-  so 1D/1W for forex are rebuilt client-side by aggregating the healthy hourly series
-  into UTC-day buckets. Metals/crypto daily files are genuine OHLC and used directly.
-* **Live vs bundled**: bundled history is refreshed with `scripts/fetch_data.py`.
-  Live mode overlays the *last* bars only (Twelve Data / Binance Vision).
+* **Source**: bundled history is **real TradingView data** — OANDA FX/XAU + Binance
+  crypto, pulled over TV's websocket protocol (`scripts/tv_feed.py`). Typical depth:
+  1m≈5k, 5m≈5.7k, 15m≈5.3k, 1h≈11k, 1d=2500 bars per symbol.
+* **Aggregation**: 30m/4H/1W rebuilt client-side from base files; 1D loads the real
+  daily file when present.
+* **Live vs bundled**: live mode overlays the *last* bars only (Twelve Data /
+  Binance Vision); a disjoint-feed guard refuses incompatible levels (e.g. futures
+  vs spot on weekends) so the chart never stitches two sources end-to-end.
 * Contract sizes: FX 100k/lot, gold 100 oz/lot, crypto 1. Spreads & leverage configurable
   in ⚙ Settings.
 
 ## Refreshing the bundled data
 
 ```bash
-python3 scripts/fetch_data.py          # all symbols (cached files are skipped)
-python3 scripts/fetch_data.py EURUSD   # single symbol
+python3 scripts/fetch_tv.py     # real TradingView history (all symbols, ~15 min)
+python3 scripts/fetch_data.py   # yfinance fallback
 ```
 
 ## Deployment

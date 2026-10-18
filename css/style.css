@@ -1,84 +1,95 @@
-/* ============ ForexReplay — TradingView-inspired dark theme ============ */
+/* ============ ForexReplay — exact TradingView dark theme + Android ============ */
 :root{
   --bg:#131722; --bg2:#1b2131; --bg3:#232a3b; --panel:#1e222d; --border:#2a2e39;
   --text:#d1d4dc; --dim:#787b86; --accent:#2962ff; --up:#26a69a; --down:#ef5350;
   --hover:#2a2e39; --gold:#f0b90b; --axis:#b2b5be;
-  --tb-h:46px; --tool-w:44px; --side-w:302px; --rb-h:52px;
+  --tb-h:48px; --tool-w:48px; --sb-h:24px; --panel-w:320px;
 }
 *{box-sizing:border-box; margin:0; padding:0}
-html,body{height:100%; overflow:hidden}
+html,body{height:100%; overflow:hidden; overscroll-behavior:none}
 body{
   background:var(--bg); color:var(--text);
   font:12px/1.45 -apple-system,BlinkMacSystemFont,"Trebuchet MS",Roboto,Ubuntu,sans-serif;
-  user-select:none; -webkit-user-select:none;
+  user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent;
 }
 button{font-family:inherit; color:inherit; background:none; border:none; cursor:pointer}
 input,select{font-family:inherit; color:var(--text); background:var(--bg2); border:1px solid var(--border); border-radius:4px; outline:none}
 input:focus,select:focus{border-color:var(--accent)}
-::-webkit-scrollbar{width:8px;height:8px}
-::-webkit-scrollbar-thumb{background:#363a45; border-radius:4px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:#363a45; border-radius:3px}
 ::-webkit-scrollbar-track{background:transparent}
 .accent{color:var(--accent)} .zero{color:var(--dim)!important} .pos{color:var(--up)!important} .neg{color:var(--down)!important}
 
-/* ================= TOP BAR ================= */
+/* ================= TOP BAR (TradingView) ================= */
 #topbar{
   height:var(--tb-h); display:flex; align-items:center; justify-content:space-between;
   background:var(--bg); border-bottom:1px solid var(--border); padding:0 10px; gap:8px; z-index:30;
 }
-.tb-left,.tb-right{display:flex; align-items:center; gap:6px; min-width:0}
-.logo{font-size:15px; font-weight:700; letter-spacing:.3px; margin-right:6px; white-space:nowrap}
-.logo-mark{color:var(--up); font-size:12px; margin-right:2px}
-.sep{width:1px; height:22px; background:var(--border); margin:0 4px}
-.tb-btn{padding:5px 9px; border-radius:5px; color:var(--text); font-size:12px; white-space:nowrap}
+.tb-left,.tb-right{display:flex; align-items:center; gap:4px; min-width:0}
+.sep{width:1px; height:22px; background:var(--border); margin:0 4px; flex:none}
+.tb-btn{padding:5px 9px; border-radius:6px; color:var(--text); font-size:12px; white-space:nowrap}
 .tb-btn:hover{background:var(--hover)}
-.sym-btn{font-weight:700; font-size:14px; display:flex; align-items:center; gap:7px; padding:5px 10px; background:var(--bg2)}
-.sym-btn svg{color:var(--dim)}
-.feed-badge{font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px; letter-spacing:.5px}
+.sym-btn{
+  font-weight:700; font-size:14px; display:flex; align-items:center; gap:8px;
+  padding:6px 12px; background:var(--bg2); border-radius:6px; color:#fff;
+}
+.sym-btn:hover{background:var(--bg3)}
+.sym-btn .mag{color:var(--dim)}
+.feed-badge{font-size:9px; font-weight:700; padding:2px 6px; border-radius:3px; letter-spacing:.5px; margin-left:2px}
 .feed-badge.hist{background:#363a45; color:#9598a1}
 .feed-badge.live{background:rgba(38,166,154,.18); color:var(--up); animation:pulse 1.6s infinite}
 .feed-badge.proxy{background:rgba(240,185,11,.15); color:var(--gold)}
 @keyframes pulse{50%{opacity:.45}}
-.tf-group,.charttype-group{display:flex; background:var(--bg2); border-radius:6px; padding:2px; gap:1px}
-.tf-btn{padding:4px 8px; border-radius:4px; font-size:12px; color:var(--dim); font-weight:600}
+.tf-group{display:flex; background:transparent; border-radius:6px; padding:0; gap:1px}
+.tf-btn{padding:5px 9px; border-radius:6px; font-size:12.5px; color:var(--dim); font-weight:600}
 .tf-btn:hover{color:var(--text); background:var(--hover)}
-.tf-btn.active{background:var(--accent); color:#fff}
-.ct-btn{width:26px; height:24px; border-radius:4px; color:var(--dim); font-size:13px; font-weight:700}
+.tf-btn.active{background:var(--bg3); color:#fff}
+.charttype-group{display:flex; border-radius:6px; padding:0; gap:1px}
+.ct-btn{width:28px; height:28px; border-radius:6px; color:var(--dim); font-size:13px; font-weight:700}
 .ct-btn:hover{background:var(--hover); color:var(--text)}
-.ct-btn.active{background:#2962ff33; color:#7aa2ff}
-#emaBtn.active,#volBtn.active{background:#2962ff33; color:#7aa2ff}
+.ct-btn.active{background:var(--bg3); color:#fff}
+#emaBtn.active,#volBtn.active{background:var(--bg3); color:#fff}
 .acct{display:flex; gap:14px; padding:0 6px}
 .acct-item{display:flex; flex-direction:column; align-items:flex-end; line-height:1.25}
-.acct-item label{font-size:9.5px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px}
-.acct-item b{font-size:12.5px; font-weight:600}
+.acct-item label{font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.4px}
+.acct-item b{font-size:12.5px; font-weight:600; font-variant-numeric:tabular-nums}
 #acctFloat.pos{color:var(--up)} #acctFloat.neg{color:var(--down)}
-.mode-toggle{display:flex; align-items:center; gap:7px; padding:6px 12px; border-radius:6px;
-  background:rgba(38,166,154,.14); color:var(--up); font-weight:700; font-size:11.5px; letter-spacing:.5px; border:1px solid rgba(38,166,154,.35)}
+.mode-toggle{display:flex; align-items:center; gap:7px; padding:6px 13px; border-radius:16px;
+  background:rgba(38,166,154,.14); color:var(--up); font-weight:700; font-size:11px; letter-spacing:.5px;
+  border:1px solid rgba(38,166,154,.35)}
 .mode-toggle.replay{background:rgba(41,98,255,.16); color:#7aa2ff; border-color:rgba(41,98,255,.45)}
 .mode-dot{width:7px; height:7px; border-radius:50%; background:var(--up); animation:pulse 1.4s infinite}
 .mode-toggle.replay .mode-dot{background:#7aa2ff; animation:none}
 
 /* ================= LAYOUT ================= */
-#main{display:flex; height:calc(100vh - var(--tb-h)); position:relative}
+body{padding-bottom:var(--sb-h)}
+#main{display:flex; height:calc(100vh - var(--tb-h) - var(--sb-h)); position:relative}
 #toolBar{
   width:var(--tool-w); background:var(--bg); border-right:1px solid var(--border);
   display:flex; flex-direction:column; align-items:center; padding:6px 0; gap:2px; z-index:20;
+  overflow-y:auto; overflow-x:hidden; flex:none;
 }
-.tool{width:34px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#9a9eab}
+.tool{width:36px; height:34px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#9a9eab; flex:none}
 .tool:hover{background:var(--hover); color:#fff}
-.tool.active{background:#2962ff; color:#fff}
+.tool.active{background:var(--accent); color:#fff}
 .tool svg{width:19px; height:19px; stroke:currentColor; stroke-width:1.7; fill:currentColor; stroke-linecap:round; stroke-linejoin:round}
-.tool-sep{width:24px; height:1px; background:var(--border); margin:5px 0}
+.tool-sep{width:24px; height:1px; background:var(--border); margin:5px 0; flex:none}
 
 #chartArea{flex:1; display:flex; flex-direction:column; min-width:0; position:relative; background:var(--bg)}
-#chartWrap{flex:1; position:relative; min-height:0; overflow:hidden}
-#mainCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair}
+#chartWrap{flex:1; position:relative; min-height:0; overflow:hidden; touch-action:none}
+#mainCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; cursor:crosshair; touch-action:none; z-index:2}
 #mainCanvas.tool-cursor{cursor:default}
 #mainCanvas.panning{cursor:grabbing}
-#legend{position:absolute; top:8px; left:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-  font-size:12.5px; pointer-events:none; z-index:5; text-shadow:0 1px 2px #000a}
-#legend b{font-size:13.5px} #legend .ohlc{display:flex; gap:5px; align-items:baseline}
-#legend i{color:var(--dim); font-style:normal; font-size:11px} #legend em{font-style:normal; font-weight:600}
-#lgSrc{font-size:10.5px; color:var(--dim)} .chg{font-weight:700}
+#legend{position:absolute; top:8px; left:10px; display:flex; align-items:baseline; gap:9px; flex-wrap:wrap;
+  font-size:12px; pointer-events:none; z-index:5; text-shadow:0 1px 2px #000a; max-width:calc(100% - 80px)}
+#legend b{font-size:13.5px; color:#fff; font-weight:700}
+#legend .ohlc{display:flex; gap:5px; align-items:baseline; font-variant-numeric:tabular-nums}
+#legend i{color:var(--dim); font-style:normal; font-size:11px}
+#legend em{font-style:normal; font-weight:600; color:var(--text)}
+#lgSrc{font-size:10.5px; color:var(--dim)}
+.chg{font-weight:700; font-variant-numeric:tabular-nums}
+.countdown{font-size:10.5px; font-weight:700; color:var(--dim); background:var(--bg2);
+  padding:1px 7px; border-radius:9px; font-variant-numeric:tabular-nums}
 #drawingBox[hidden]{display:none}
 #drawingBox{position:absolute; z-index:8; display:flex; gap:4px; background:var(--panel);
   border:1px solid var(--border); border-radius:6px; padding:3px; box-shadow:0 4px 14px #0007}
@@ -86,88 +97,101 @@ input:focus,select:focus{border-color:var(--accent)}
 #drawingBox button:hover{background:var(--hover)}
 #replayOverlay{position:absolute; top:0; left:0; right:0; display:flex; justify-content:center; pointer-events:none; z-index:4}
 #replayOverlay.ro-hidden{display:none}
-.ro-hidden{display:none}
-.ro-badge{margin-top:34px; font-size:10.5px; letter-spacing:.6px; color:#7aa2ff; background:rgba(41,98,255,.14);
-  border:1px solid rgba(41,98,255,.4); padding:4px 12px; border-radius:20px}
+.ro-badge{margin-top:36px; font-size:10.5px; letter-spacing:.6px; color:#7aa2ff; background:rgba(41,98,255,.14);
+  border:1px solid rgba(41,98,255,.4); padding:4px 14px; border-radius:20px; backdrop-filter:blur(3px)}
 
-/* ============ Replay transport ============ */
-#replayBar{height:var(--rb-h); background:var(--bg2); border-top:1px solid var(--border);
-  display:flex; flex-direction:column; justify-content:center; padding:4px 14px; gap:3px; z-index:15}
-.rb-controls{display:flex; align-items:center; gap:10px}
-.rb-controls>button{width:30px; height:28px; border-radius:5pxpx; border-radius:5px; color:var(--text); font-size:12px}
+/* ============ Replay transport — floating pill (TradingView style) ============ */
+#replayBar{
+  position:absolute; left:50%; bottom:14px; transform:translateX(-50%); z-index:25;
+  background:rgba(30,34,45,.92); border:1px solid #363a45; border-radius:12px;
+  box-shadow:0 8px 28px #000a, 0 2px 8px #0006; padding:7px 12px 6px;
+  backdrop-filter:blur(8px); max-width:min(720px, calc(100% - 24px));
+  animation:rpin .18s ease-out;
+}
+@keyframes rpin{from{opacity:0; transform:translateX(-50%) translateY(10px)}}
+.rb-controls{display:flex; align-items:center; gap:8px}
+.rb-controls>button{width:30px; height:28px; border-radius:6px; color:var(--text); font-size:12px; flex:none}
 .rb-controls>button:hover{background:var(--hover)}
-#rpPlay{width:44px!important; background:var(--accent); color:#fff!important; font-size:14px!important; font-weight:700}
+#rpPlay{width:40px!important; background:var(--accent); color:#fff!important; font-size:14px!important; font-weight:700}
 #rpPlay:hover{background:#1e53e5!important}
-.speed-menu{display:flex; background:var(--bg); border-radius:5px; padding:2px; gap:1px}
-.speed-menu button{padding:3px 7px; font-size:11px; color:var(--dim); border-radius:4px}
+.speed-menu{display:flex; background:var(--bg); border-radius:6px; padding:2px; gap:1px; flex:none}
+.speed-menu button{padding:3px 7px; font-size:11px; color:var(--dim); border-radius:5px}
 .speed-menu button.active{background:var(--bg3); color:#fff}
-.rb-date{display:flex; align-items:center; gap:6px; color:var(--dim); font-size:11.5px}
-.rb-date input{padding:3px 6px; font-size:11.5px; color-scheme:dark; width:150px}
-.rb-date button{padding:3px 9px; background:var(--bg3); border-radius:4px; font-size:11.5px}
+.rb-date{display:flex; align-items:center; gap:5px}
+.rb-date input{padding:3px 6px; font-size:11px; color-scheme:dark; width:148px}
+.rb-date button{padding:3px 9px; background:var(--bg3); border-radius:5px; font-size:11px}
 .rb-date button:hover{background:var(--hover)}
-.rb-info{margin-left:auto; display:flex; gap:14px; color:var(--dim); font-size:11.5px}
-#rpTime{color:var(--text); font-weight:600}
-.rb-slider{display:flex}
+.rb-info{display:flex; gap:10px; color:var(--dim); font-size:11px; flex:none}
+#rpTime{color:var(--text); font-weight:600; font-variant-numeric:tabular-nums}
+.rb-slider{display:flex; margin-top:5px}
 #rpSlider{width:100%; height:14px; -webkit-appearance:none; background:transparent; cursor:pointer}
-#rpSlider::-webkit-slider-runnable-track{height:4px; background:#2f3542; border-radius:2px}
+#rpSlider::-webkit-slider-runnable-track{height:3px; background:#363a45; border-radius:2px}
 #rpSlider::-webkit-slider-thumb{-webkit-appearance:none; width:13px; height:13px; border-radius:50%;
-  background:var(--accent); margin-top:-4.5px; border:2px solid #fff; box-shadow:0 1px 4px #0009}
-#rpSlider::-moz-range-track{height:4px; background:#2f3542; border-radius:2px}
+  background:var(--accent); margin-top:-5px; border:2px solid #fff; box-shadow:0 1px 4px #0009}
+#rpSlider::-moz-range-track{height:3px; background:#363a45; border-radius:2px}
 #rpSlider::-moz-range-thumb{width:11px; height:11px; border-radius:50%; background:var(--accent); border:2px solid #fff}
+body:not(.is-replay) #replayBar{display:none}
 
-/* ================= SIDE PANEL ================= */
-#sidePanel{width:var(--side-w); background:var(--panel); border-left:1px solid var(--border);
-  display:flex; flex-direction:column; z-index:20; overflow:hidden}
+/* ============ Side panel ============ */
+#sidePanel{
+  width:var(--panel-w); background:var(--panel); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; z-index:20; overflow:hidden; position:relative; flex:none;
+}
+#panelHandle{
+  position:absolute; left:-3px; top:0; bottom:0; width:6px; cursor:col-resize; z-index:40; background:transparent;
+}
+#panelHandle:hover,#panelHandle.dragging{background:rgba(41,98,255,.45)}
+#sheetHandle,#sheetClose{display:none}
 .ticket{padding:10px 12px; border-bottom:1px solid var(--border)}
 .ticket-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:8px}
 .ticket-head span:first-child{font-weight:700; font-size:14px}
 .spread{font-size:10.5px; color:var(--dim); background:var(--bg2); padding:2px 7px; border-radius:10px}
 .quote{display:flex; gap:7px; margin-bottom:9px}
-.qx{flex:1; text-align:center; padding:7px 4px; border-radius:6px; cursor:pointer; transition:.12s; border:1px solid transparent}
+.qx{flex:1; text-align:center; padding:8px 4px; border-radius:6px; cursor:pointer; transition:.12s; border:1px solid transparent}
 .qx label{display:block; font-size:10px; font-weight:800; letter-spacing:1px; opacity:.85}
 .qx b{font-size:17px; font-weight:700; font-variant-numeric:tabular-nums}
 .qx.sell{background:rgba(239,83,80,.13); color:#ff6b6b; border-color:rgba(239,83,80,.3)}
 .qx.buy{background:rgba(38,166,154,.13); color:#2fd3b8; border-color:rgba(38,166,154,.3)}
-.qx.sell:hover{background:rgba(239,83,80,.24); border-color:var(--down)}
-.qx.buy:hover{background:rgba(38,166,154,.24); border-color:var(--up)}
+.qx.sell:active{background:rgba(239,83,80,.3)}
+.qx.buy:active{background:rgba(38,166,154,.3)}
 .tk-row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px}
 .tk-row label{color:var(--dim); font-size:11.5px; white-space:nowrap}
-.tk-row input,.tk-row select{width:118px; padding:5px 7px; font-size:12.5px}
+.tk-row input,.tk-row select{width:122px; padding:6px 7px; font-size:12.5px}
 .stepper{display:flex; align-items:center; gap:0; border:1px solid var(--border); border-radius:5px; overflow:hidden}
-.stepper button{width:26px; height:27px; background:var(--bg2); color:var(--text); font-size:14px}
+.stepper button{width:28px; height:30px; background:var(--bg2); color:var(--text); font-size:14px}
 .stepper button:hover{background:var(--hover)}
-.stepper input{width:64px; border:none; border-radius:0; text-align:center; background:var(--bg2); font-weight:600; -moz-appearance:textfield}
+.stepper input{width:66px; border:none; border-radius:0; text-align:center; background:var(--bg2); font-weight:600; -moz-appearance:textfield}
 .quick-vol{display:flex; gap:5px; margin-bottom:8px}
-.quick-vol button{flex:1; padding:3px 0; font-size:11px; background:var(--bg2); border-radius:4px; color:var(--dim)}
+.quick-vol button{flex:1; padding:5px 0; font-size:11px; background:var(--bg2); border-radius:4px; color:var(--dim)}
 .quick-vol button.active,.quick-vol button:hover{background:var(--bg3); color:#fff}
 .risk-row input{width:64px} .hint{font-size:10.5px; color:var(--dim); flex:1; text-align:right}
 .tk-checks{display:flex; gap:14px; margin-bottom:7px}
 .tk-checks label{display:flex; align-items:center; gap:5px; color:var(--dim); font-size:11.5px; cursor:pointer}
 .tk-checks input{accent-color:var(--accent)}
-#tpRow input,#slRow input{width:118px}
+#tpRow input,#slRow input{width:122px}
 .order-type-row{display:flex; gap:7px; margin-bottom:9px}
-.order-type-row select{flex:1; padding:5px 7px; font-size:12.5px}
-.order-type-row input{flex:1; padding:5px 7px; font-size:12.5px}
+.order-type-row select{flex:1; padding:6px 7px; font-size:12.5px}
+.order-type-row input{flex:1; padding:6px 7px; font-size:12.5px}
 .tk-actions{display:flex; gap:7px; margin-bottom:7px}
-.sell-btn,.buy-btn{flex:1; padding:9px 0; border-radius:7px; font-weight:800; font-size:13.5px; letter-spacing:.6px; transition:.12s; line-height:1.25}
-.sell-btn small,.buy-btn small{font-weight:600; font-size:11.5px; opacity:.9}
-.sell-btn{background:var(--down); color:#fff} .sell-btn:hover{background:#e64a47}
-.buy-btn{background:var(--up); color:#fff} .buy-btn:hover{background:#1f8f83}
+.sell-btn,.buy-btn{flex:1; padding:10px 0; border-radius:6px; font-weight:800; font-size:13px; letter-spacing:.5px; transition:.12s; line-height:1.25}
+.sell-btn small,.buy-btn small{font-weight:600; font-size:11px; opacity:.9; font-variant-numeric:tabular-nums}
+.sell-btn{background:var(--down); color:#fff} .sell-btn:active{background:#e64a47; transform:scale(.98)}
+.buy-btn{background:var(--up); color:#fff} .buy-btn:active{background:#1f8f83; transform:scale(.98)}
 .tk-note{font-size:10.5px; color:var(--dim); text-align:center}
 
-.panel-tabs{display:flex; border-bottom:1px solid var(--border)}
-.panel-tabs button{flex:1; padding:9px 4px; font-size:11.5px; color:var(--dim); font-weight:600; border-bottom:2px solid transparent}
+.panel-tabs{display:flex; border-bottom:1px solid var(--border); flex:none}
+.panel-tabs button{flex:1; padding:10px 4px; font-size:11.5px; color:var(--dim); font-weight:600; border-bottom:2px solid transparent}
 .panel-tabs button:hover{color:var(--text); background:var(--hover)}
 .panel-tabs button.active{color:#fff; border-bottom-color:var(--accent)}
 .cnt{display:inline-block; min-width:16px; padding:0 4px; background:var(--bg3); border-radius:8px; font-size:10px; margin-left:3px}
-.panel-body{flex:1; overflow:auto; position:relative}
+.panel-body{flex:1; overflow:auto; position:relative; -webkit-overflow-scrolling:touch}
 .tab-page{display:none; padding:4px 0}
 .tab-page.active{display:block}
 .trades-table{width:100%; border-collapse:collapse; font-size:11.5px}
 .trades-table th{position:sticky; top:0; background:var(--panel); color:var(--dim); font-size:10px;
-  text-transform:uppercase; letter-spacing:.4px; text-align:right; padding:7px 7px; border-bottom:1px solid var(--border); z-index:2}
+  text-transform:uppercase; letter-spacing:.4px; text-align:right; padding:7px; border-bottom:1px solid var(--border); z-index:2}
 .trades-table th:first-child,.trades-table td:first-child{text-align:left; padding-left:12px}
-.trades-table td{padding:7px; text-align:right; border-bottom:1px solid #232633; font-variant-numeric:tabular-nums; white-space:nowrap}
+.trades-table td{padding:8px 7px; text-align:right; border-bottom:1px solid #232633; font-variant-numeric:tabular-nums; white-space:nowrap}
 .trades-table tr:hover td{background:#232736}
 .side-tag{font-size:9.5px; font-weight:800; padding:2px 6px; border-radius:3px; letter-spacing:.4px}
 .side-tag.buy{background:rgba(38,166,154,.18); color:var(--up)}
@@ -178,45 +202,142 @@ input:focus,select:focus{border-color:var(--accent)}
 .stats{padding:10px 12px; color:var(--dim); font-size:11px; display:flex; flex-wrap:wrap; gap:10px; border-top:1px solid var(--border)}
 .stats b{color:var(--text)}
 .account-footer{display:grid; grid-template-columns:1fr 1fr; gap:6px 10px; padding:9px 12px;
-  border-top:1px solid var(--border); background:var(--bg2)}
+  border-top:1px solid var(--border); background:var(--bg2); flex:none}
 .account-footer div{display:flex; justify-content:space-between}
 .account-footer label{color:var(--dim); font-size:10.5px}
 .account-footer b{font-size:11.5px; font-variant-numeric:tabular-nums}
+
+/* ============ Status bar ============ */
+#statusbar{
+  position:fixed; left:0; right:0; bottom:0; height:var(--sb-h); z-index:35;
+  display:flex; align-items:center; justify-content:space-between; padding:0 12px;
+  background:var(--bg); border-top:1px solid var(--border); color:var(--dim); font-size:10.5px;
+}
+#sbClock{font-variant-numeric:tabular-nums}
+#sbLeft{color:#7aa2ff}
+
+/* ============ FAB (mobile trade button) ============ */
+#tradeFab{
+  display:none; position:absolute; right:12px; bottom:70px; z-index:22;
+  background:var(--accent); color:#fff; font-weight:800; font-size:13px;
+  padding:12px 20px; border-radius:24px; box-shadow:0 6px 18px rgba(41,98,255,.45);
+}
+#tradeFab:active{transform:scale(.96)}
+#sheetBackdrop{display:none; position:absolute; inset:0; background:#0008; z-index:19}
+#sheetBackdrop.show{display:block}
 
 /* ================= MODALS / TOASTS ================= */
 .modal{position:fixed; inset:0; background:#000a; display:flex; align-items:flex-start; justify-content:center;
   z-index:100; backdrop-filter:blur(2px)}
 .modal.hidden{display:none}
 .modal-card{width:460px; max-height:70vh; margin-top:70px; background:var(--panel); border:1px solid var(--border);
-  border-radius:10px; box-shadow:0 18px 50px #000c; overflow:hidden; display:flex; flex-direction:column}
+  border-radius:12px; box-shadow:0 18px 50px #000c; overflow:hidden; display:flex; flex-direction:column}
 .modal-card.small{width:340px; padding:16px}
 .modal-card h3{font-size:14px; margin-bottom:14px}
-#symSearch{margin:12px; padding:9px 12px; font-size:14px; border-radius:7px}
-#symList{overflow:auto; padding-bottom:8px}
+#symSearch{margin:12px; padding:10px 12px; font-size:14px; border-radius:8px}
+#symList{overflow:auto; padding-bottom:8px; -webkit-overflow-scrolling:touch}
 .sym-group{font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.8px; padding:8px 14px 4px}
-.sym-item{display:flex; align-items:center; gap:10px; padding:8px 14px; cursor:pointer}
+.sym-item{display:flex; align-items:center; gap:10px; padding:9px 14px; cursor:pointer}
 .sym-item:hover,.sym-item.hl{background:var(--hover)}
 .sym-item b{font-size:13px; width:76px} .sym-item span{color:var(--dim); font-size:11.5px; flex:1}
 .sym-item em{font-style:normal; font-size:9.5px; padding:2px 6px; border-radius:3px; background:var(--bg3); color:var(--dim)}
 .modal-actions{display:flex; gap:8px; margin-top:14px}
-.modal-actions button{flex:1; padding:8px; border-radius:6px; background:var(--bg3)}
+.modal-actions button{flex:1; padding:9px; border-radius:6px; background:var(--bg3)}
 .modal-actions button:hover{background:var(--hover)}
 .modal-actions .prim{background:var(--accent); color:#fff} .modal-actions .prim:hover{background:#1e53e5}
-#toasts{position:fixed; top:56px; right:calc(var(--side-w) + 14px); z-index:200; display:flex; flex-direction:column; gap:8px; pointer-events:none}
+#toasts{position:fixed; top:56px; right:calc(var(--panel-w) + 14px); z-index:200; display:flex; flex-direction:column; gap:8px; pointer-events:none}
 .toast{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent);
-  border-radius:7px; padding:9px 14px; font-size:12.5px; box-shadow:0 6px 20px #000a;
-  animation:tin .18s ease-out; min-width:240px}
+  border-radius:8px; padding:10px 14px; font-size:12.5px; box-shadow:0 6px 20px #000a;
+  animation:tin .18s ease-out; min-width:240px; max-width:320px}
 .toast.good{border-left-color:var(--up)} .toast.bad{border-left-color:var(--down)} .toast.warn{border-left-color:var(--gold)}
 .toast small{display:block; color:var(--dim); font-size:11px; margin-top:1px}
 @keyframes tin{from{transform:translateX(30px); opacity:0}}
 .toast.out{transition:.3s; opacity:0; transform:translateX(30px)}
 
-/* ============ responsive ============ */
-@media (max-width:1100px){
-  :root{--side-w:260px}
+/* ============ DESKTOP TWEAKS ============ */
+@media (max-width:1200px){
+  .acct-item label{display:none}
+}
+@media (max-width:1050px){
   .acct{display:none}
+  :root{--panel-w:280px}
 }
-@media (max-width:860px){
-  #sidePanel{position:absolute; right:0; top:0; bottom:0; transform:translateX(100%); transition:.2s}
-  #sidePanel.open{transform:none}
+
+/* ============ ANDROID / PHONE ============ */
+@media (max-width:768px), (pointer:coarse) and (max-width:900px){
+  :root{--tb-h:44px; --sb-h:0px}
+  #statusbar{display:none}
+  #topbar{padding:0 6px; gap:4px}
+  .sym-btn{padding:5px 9px; font-size:13px; gap:6px}
+  .sep{display:none}
+  .tf-group{overflow-x:auto; scrollbar-width:none; flex:1; justify-content:flex-start}
+  .tf-group::-webkit-scrollbar{display:none}
+  .tf-btn{padding:5px 8px; font-size:12px; flex:none}
+  .charttype-group,#emaBtn,#volBtn{display:none}
+  #settingsBtn{padding:5px 7px}
+  .mode-toggle{padding:5px 10px; font-size:10px; gap:5px}
+  .acct{display:none}
+  #main{height:calc(100vh - var(--tb-h))}
+
+  /* drawing tools → horizontal bottom strip */
+  #toolBar{
+    position:fixed; left:0; right:0; bottom:0; top:auto; width:auto; height:46px;
+    flex-direction:row; border-right:none; border-top:1px solid var(--border);
+    padding:0 4px; gap:2px; overflow-x:auto; overflow-y:hidden; z-index:30;
+    padding-bottom:env(safe-area-inset-bottom, 0);
+  }
+  #toolBar .tool-sep{width:1px; height:22px; margin:0 4px; align-self:center}
+  .tool{width:38px; height:38px}
+
+  /* trade panel → bottom sheet */
+  #sidePanel{
+    position:fixed; left:0; right:0; bottom:0; top:auto; width:100%!important;
+    height:min(78vh, 620px); border-left:none; border-top:1px solid #363a45;
+    border-radius:16px 16px 0 0; transform:translateY(105%); transition:transform .22s ease;
+    box-shadow:0 -12px 40px #000b; z-index:45; padding-bottom:46px;
+  }
+  #sidePanel.open{transform:translateY(0)}
+  #sheetHandle{display:block; padding:7px 0 3px; flex:none}
+  #sheetHandle span{display:block; width:38px; height:4px; border-radius:2px; background:#3c4152; margin:0 auto}
+  #sheetClose{display:block; position:absolute; right:10px; top:8px; z-index:5; width:30px; height:30px;
+    border-radius:50%; background:var(--bg3); color:var(--text); font-size:13px}
+  #panelHandle{display:none}
+  #tradeFab{display:block; bottom:58px; right:10px; padding:11px 16px; font-size:12.5px}
+  body.sheet-open #tradeFab{display:none}
+
+  /* replay pill → compact, left of Trade FAB, above tool strip */
+  #replayBar{
+    bottom:56px; left:8px; right:auto; transform:none;
+    padding:6px 8px; border-radius:10px;
+    max-width:calc(100% - 120px);
+  }
+  .rb-controls{gap:5px}
+  .rb-date{display:none}
+  .rb-info{display:none}
+  .rb-controls>button{width:28px; height:26px; font-size:11px}
+  #rpPlay{width:36px!important}
+  .speed-menu button{padding:3px 5px; font-size:10px}
+  .ro-badge{margin-top:30px; font-size:9.5px}
+
+  /* legend tighter */
+  #legend{font-size:11px; gap:6px; max-width:calc(100% - 70px)}
+  #legend b{font-size:12px}
+  #lgSrc{display:none}
+
+  /* modals full width */
+  .modal-card{width:calc(100% - 20px); margin-top:54px; max-height:78vh}
+  #toasts{top:50px; right:8px; left:8px}
+  .toast{max-width:none}
 }
+
+/* very small phones */
+@media (max-width:400px){
+  .speed-menu button[data-speed="8"]{display:none}
+}
+@media (max-width:380px){
+  .speed-menu button[data-speed="20"]{display:none}
+  .sym-btn .mag{display:none}
+}
+
+/* prevent iOS pinch */
+#chartWrap{touch-action:none}

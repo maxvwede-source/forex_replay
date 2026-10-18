@@ -163,11 +163,30 @@
     },
     priceAuto() { this.view.pManual = null; this.requestRender(); },
 
-    /* ---------------- interaction ---------------- */
+    /* ---------------- interaction (mouse + touch via pointer events) ---------------- */
     _bind() {
       const cv = this.cv;
       let drag = null;
-      cv.addEventListener("mousedown", (e) => {
+      const pointers = new Map();
+      let pinch = null;
+
+      cv.addEventListener("pointerdown", (e) => {
+        try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+        pointers.set(e.pointerId, this._ev(e));
+        if (pointers.size === 2) {                 // two-finger pinch: time zoom + pan
+          drag = null; this.dragPriceLine = null;
+          cv.classList.remove("panning");
+          const pts = [...pointers.values()];
+          const pr = this.priceRange();
+          pinch = {
+            d: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1,
+            cx: (pts[0].x + pts[1].x) / 2, cy: (pts[0].y + pts[1].y) / 2,
+            bw: this.view.bw, first: this.view.first,
+            lo: pr.lo, hi: pr.hi,
+          };
+          return;
+        }
+        if (pointers.size > 2) return;
         const { x, y } = this._ev(e);
         if (Tools.onMouseDown(x, y, e)) return;               // drawing tools first
         const line = this._hitPosLine(x, y);
@@ -179,7 +198,23 @@
         drag = { kind: "pan", x: x, first: this.view.first, moved: false };
         cv.classList.add("panning");
       });
-      window.addEventListener("mousemove", (e) => {
+
+      window.addEventListener("pointermove", (e) => {
+        if (pointers.has(e.pointerId)) pointers.set(e.pointerId, this._ev(e));
+        if (pinch && pointers.size >= 2) {
+          const pts = [...pointers.values()].slice(0, 2);
+          const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
+          const cx = (pts[0].x + pts[1].x) / 2, cy = (pts[0].y + pts[1].y) / 2;
+          const bw = Math.max(1.2, Math.min(60, pinch.bw * (d / pinch.d)));
+          const anchorI = pinch.first + pinch.cx / pinch.bw;
+          this.view.bw = bw;
+          this.view.first = anchorI - cx / bw;
+          this.view.follow = this._atRight();
+          const span = pinch.hi - pinch.lo;
+          this.view.pManual = { center: (pinch.hi + pinch.lo) / 2 + ((cy - pinch.cy) / this.plotH()) * span, span };
+          this.requestRender();
+          return;
+        }
         const { x, y } = this._ev(e);
         if (this.dragPriceLine) {
           const d = this.dragPriceLine;
@@ -204,8 +239,12 @@
         cv.style.cursor = this._cursorFor(x, y);
         this._emitCursor();
         this.requestRender();
-      });
-      window.addEventListener("mouseup", (e) => {
+      }, { passive: true });
+
+      const up = (e) => {
+        pointers.delete(e.pointerId);
+        try { cv.releasePointerCapture(e.pointerId); } catch (err) {}
+        if (pointers.size < 2) pinch = null;
         if (this.dragPriceLine) {
           const d = this.dragPriceLine; this.dragPriceLine = null;
           const { x, y } = this._ev(e);
@@ -225,7 +264,10 @@
         }
         this.cv.classList.remove("panning");
         this.cv.style.cursor = "";
-      });
+      };
+      window.addEventListener("pointerup", up);
+      window.addEventListener("pointercancel", up);
+
       cv.addEventListener("dblclick", (e) => {
         const { x } = this._ev(e);
         if (x > this.plotW()) this.priceAuto();
@@ -238,6 +280,7 @@
         this.zoomBars(e.deltaY > 0 ? 0.9 : 1.11, x);
       }, { passive: false });
       cv.addEventListener("mouseleave", () => {
+        if (pointers.size) return;                 // don't kill crosshair mid-touch-drag
         this.cross.on = false; this._emitCursor(); this.requestRender();
       });
       cv.addEventListener("contextmenu", (e) => { e.preventDefault(); Tools.onContext(this._ev(e).x, this._ev(e).y, e); });
@@ -301,6 +344,7 @@
       ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
       ctx.clearRect(0, 0, W, H);
       const pW = this.plotW(), pH = this.plotH();
+      this._drawWatermark(ctx, pW, pH);
       this._volHC = this.volH();
       const vH = this._volHC;
       this._pr = this.priceRange();
@@ -324,6 +368,24 @@
       ctx.strokeStyle = AXISC; ctx.lineWidth = 1;
       ctx.strokeRect(pW + 0.5, 0.5, W - pW - 1, H - 1);
       ctx.beginPath(); ctx.moveTo(0, pH + 0.5); ctx.lineTo(W, pH + 0.5); ctx.stroke();
+    },
+
+    /* TradingView-style faint watermark behind the candles */
+    _drawWatermark(ctx, pW, pH) {
+      if (pW < 120 || pH < 80) return;
+      const name = (this.meta && this.meta.name) || this.symbol || "";
+      if (!name) return;
+      const prov = this.meta && this.meta.tv ? String(this.meta.tv).split(":")[0] : "";
+      const size = Math.min(58, Math.max(26, Math.min(pW, pH * 1.6) / 9));
+      ctx.save();
+      ctx.globalAlpha = 0.045;
+      ctx.fillStyle = "#f7f8fa";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "700 " + size + "px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(name, pW / 2, pH * 0.4);
+      ctx.font = "400 " + Math.round(size * 0.4) + "px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText((prov ? prov + " · " : "") + this.tf, pW / 2, pH * 0.4 + size * 0.72);
+      ctx.restore();
     },
 
     _drawGrid(ctx, pW, pH) {

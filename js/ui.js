@@ -22,6 +22,9 @@
       this._settings();
       this._keys();
       this._panels();
+      this._mobile();
+      this._panelResize();
+      this._clock();
 
       Chart.onCursor = (bar) => this._legend(bar);
       Trade.onUpdate = (type, info) => this._tradeEvent(type, info);
@@ -173,7 +176,8 @@
       $(".mode-dot").className = "mode-dot " + (on ? "replay" : "live");
       $("#rpPlay").textContent = Replay.playing ? "❚❚" : "▶";
       $("#replayOverlay").classList.toggle("ro-hidden", !on);
-      $("#replayBar").style.display = this.mode === "replay" ? "" : "none";
+      document.body.classList.toggle("is-replay", this.mode === "replay");
+      this._status();
       const sl = $("#rpSlider");
       sl.value = Replay.cursor;
       const b = Replay.currentBar();
@@ -284,7 +288,8 @@
       }
       $("#lgSrc").textContent = src === "twelvedata" ? "· Twelve Data live"
         : src === "binance" ? "· Binance Vision live"
-        : (this.mode === "replay" ? "· bar replay" : "· bundled history");
+        : (this.mode === "replay" ? "· bar replay" : "· TradingView history");
+      this._status();
     },
 
     /* =============== ticket =============== */
@@ -642,6 +647,75 @@
         this._closeModals();
         this.refreshAll();
       };
+    },
+
+    /* =============== clock / countdown / status =============== */
+    _clock() {
+      const p = (n) => String(n).padStart(2, "0");
+      const tick = () => {
+        const now = new Date();
+        const c = $("#sbClock");
+        if (c) c.textContent = p(now.getUTCHours()) + ":" + p(now.getUTCMinutes()) + ":" + p(now.getUTCSeconds()) + " UTC";
+        const el = $("#lgCount");
+        if (el) {
+          if (this.mode === "replay" || !Chart.bars.length) el.textContent = "";
+          else {
+            const b = Chart.bars[Chart.bars.length - 1];
+            const tfSec = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1D": 86400, "1W": 604800 }[this.tf] || 3600;
+            const left = Math.max(0, Math.floor((b.t + tfSec) * 1000 - now.getTime()) / 1000);
+            const mm = Math.floor(left / 60), ss = left % 60;
+            el.textContent = left >= 60 ? "closes " + mm + ":" + p(ss) : left + "s";
+          }
+        }
+        const barsEl = $("#sbBars");
+        if (barsEl) barsEl.textContent = (Chart.bars.length || 0).toLocaleString("en-US") + " bars";
+      };
+      tick();
+      setInterval(tick, 1000);
+    },
+    _status() {
+      const l = $("#sbLeft");
+      if (!l) return;
+      if (this.mode === "replay") l.textContent = "◄ REPLAY — future bars hidden · ▶ play";
+      else l.textContent = this.liveSource === "twelvedata" ? "LIVE · Twelve Data"
+        : this.liveSource === "binance" ? "LIVE · Binance proxy"
+        : "HISTORY · TradingView data";
+    },
+
+    /* =============== mobile sheet + panel resize =============== */
+    _mobile() {
+      const open = () => {
+        $("#sidePanel").classList.add("open");
+        $("#sheetBackdrop").classList.add("show");
+        document.body.classList.add("sheet-open");
+      };
+      const close = () => {
+        $("#sidePanel").classList.remove("open");
+        $("#sheetBackdrop").classList.remove("show");
+        document.body.classList.remove("sheet-open");
+      };
+      this.closeSheet = close;
+      const fab = $("#tradeFab"); if (fab) fab.onclick = open;
+      const cl = $("#sheetClose"); if (cl) cl.onclick = close;
+      const bd = $("#sheetBackdrop"); if (bd) bd.onclick = close;
+    },
+    _panelResize() {
+      const h = $("#panelHandle");
+      if (!h) return;
+      let dragging = false;
+      h.addEventListener("pointerdown", (e) => {
+        if (window.innerWidth <= 768) return;
+        dragging = true; h.classList.add("dragging");
+        try { h.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+      h.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const w = Math.min(480, Math.max(260, window.innerWidth - e.clientX));
+        document.documentElement.style.setProperty("--panel-w", w + "px");
+      });
+      const end = () => { dragging = false; h.classList.remove("dragging"); };
+      h.addEventListener("pointerup", end);
+      h.addEventListener("pointercancel", end);
     },
 
     /* =============== toast =============== */

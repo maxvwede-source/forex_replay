@@ -51,17 +51,22 @@
       if (tf === "1W") {
         out = this._aggregateWeeks(await this.bars(symbol, "1D"));
       } else if (tf === "1D") {
-        // Yahoo FX daily bars carry open≈close (useless for candles), so FX
-        // dailies are rebuilt by aggregating the healthy hourly series in UTC
-        // day buckets; metals/crypto daily files are genuine OHLC.
-        if (meta.cat === "forex")
-          out = this._aggregate(await this._load(symbol, "1h"), TF_SEC["1D"]);
-        else
+        // prefer the real daily OHLC file (TradingView fetch); fall back to
+        // aggregating hourly bars when the symbol has no 1d file.
+        if (meta.files && meta.files["1d"])
           out = await this._load(symbol, "1d");
+        else
+          out = this._aggregate(await this._load(symbol, "1h"), TF_SEC["1D"]);
       } else if (tf === "30m") {
-        out = this._aggregate(await this._load(symbol, "15m"), TF_SEC["30m"]);
+        if (meta.files && meta.files["30m"])
+          out = await this._load(symbol, "30m");
+        else
+          out = this._aggregate(await this._load(symbol, "15m"), TF_SEC["30m"]);
       } else if (tf === "4h") {
-        out = this._aggregate(await this._load(symbol, "1h"), TF_SEC["4h"]);
+        if (meta.files && meta.files["4h"])
+          out = await this._load(symbol, "4h");
+        else
+          out = this._aggregate(await this._load(symbol, "1h"), TF_SEC["4h"]);
       } else {
         out = await this._load(symbol, tf);
       }

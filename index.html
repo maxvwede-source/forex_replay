@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#131722">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>ForexReplay — TradingView-style Bar Replay & Backtester</title>
 <link rel="stylesheet" href="css/style.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23131722'/><path d='M6 22 L12 14 L17 18 L26 7' stroke='%2326a69a' stroke-width='3' fill='none'/></svg>">
@@ -12,11 +15,9 @@
 <!-- ================= TOP BAR ================= -->
 <header id="topbar">
   <div class="tb-left">
-    <div class="logo"><span class="logo-mark">▲</span>Forex<span class="accent">Replay</span></div>
-    <div class="sep"></div>
-    <button id="symbolBtn" class="tb-btn sym-btn">
+    <button id="symbolBtn" class="tb-btn sym-btn" title="Symbol search">
+      <svg class="mag" width="14" height="14" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="15" y1="15" x2="21" y2="21" stroke="currentColor" stroke-width="2"/></svg>
       <span id="symName">EUR/USD</span>
-      <svg width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="currentColor" fill="none" stroke-width="1.5"/></svg>
     </button>
     <div id="feedBadge" class="feed-badge hist" title="Data source">HIST</div>
     <div class="sep"></div>
@@ -37,7 +38,7 @@
       <button class="ct-btn" data-type="line" title="Line">〜</button>
       <button class="ct-btn" data-type="area" title="Area">◢</button>
     </div>
-    <button class="tb-btn" id="emaBtn" title="Toggle EMA 9/21/50">EMA</button>
+    <button class="tb-btn" id="emaBtn" title="Indicators — EMA 9/21/50">fx EMA</button>
     <button class="tb-btn" id="volBtn" title="Toggle volume">VOL</button>
   </div>
 
@@ -86,15 +87,19 @@
         <span id="lgSrc"></span>
         <span class="ohlc"><i>o</i><em id="lgO">—</em><i>h</i><em id="lgH">—</em><i>l</i><em id="lgL">—</em><i>c</i><em id="lgC">—</em></span>
         <span id="lgChg" class="chg zero">—</span>
+        <span id="lgCount" class="countdown" title="Time until this bar closes"></span>
       </div>
       <div id="drawingBox" hidden>
         <button id="dEdit">✎ Edit</button><button id="dDel">🗑 Delete</button>
       </div>
       <div id="replayOverlay" class="ro-hidden">
-        <span class="ro-badge">◄◄ REPLAY MODE — future bars hidden</span>
+        <span class="ro-badge">◄◄ REPLAY — future bars hidden</span>
       </div>
+      <button id="tradeFab" title="Trade panel">Trade</button>
+      <div id="sheetBackdrop"></div>
     </div>
-    <!-- Replay transport -->
+
+    <!-- Replay transport: floating pill like TradingView -->
     <div id="replayBar">
       <div class="rb-controls">
         <button id="rpRestart" title="Jump to start">⏮</button>
@@ -109,20 +114,21 @@
           <button data-speed="20">20x</button>
         </div>
         <div class="rb-date">
-          <label>Jump to</label>
-          <input type="datetime-local" id="jumpDate" step="60">
+          <input type="datetime-local" id="jumpDate" step="60" aria-label="Jump to date">
           <button id="jumpGo">Go</button>
         </div>
         <div class="rb-info"><span id="rpTime">—</span><span id="rpCount"></span></div>
-      </div>
-      <div class="rb-slider">
-        <input type="range" id="rpSlider" min="60" max="100" value="100">
+        <div class="rb-slider">
+          <input type="range" id="rpSlider" min="60" max="100" value="100">
+        </div>
       </div>
     </div>
   </section>
 
   <!-- Right panel -->
   <aside id="sidePanel">
+    <div id="sheetHandle"><span></span></div>
+    <button id="sheetClose" title="Close panel">✕</button>
     <div class="ticket">
       <div class="ticket-head">
         <span id="tkSym">EUR/USD</span>
@@ -200,7 +206,15 @@
       <div><label>Margin level</label><b id="ftLevel">—</b></div>
     </div>
   </aside>
+  <div id="panelHandle" title="Drag to resize"></div>
 </main>
+
+<!-- Status bar -->
+<footer id="statusbar">
+  <span id="sbLeft">Bar replay — press ▶</span>
+  <span id="sbMid"></span>
+  <span id="sbRight"><span id="sbBars"></span> · <span id="sbClock">--:--:-- UTC</span></span>
+</footer>
 
 <!-- Symbol search modal -->
 <div id="symModal" class="modal hidden">
