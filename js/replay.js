@@ -66,14 +66,14 @@
       }
       this.cuts = out;
     },
-    /* remove bars in [t0, t1); returns {removed} or {err} */
+    /* remove bars in [t0, t1) from the PLAYABLE sequence; returns {removed} or {err} */
     addCut(t0, t1) {
-      if (t1 <= t0) return { err: "empty range" };
+      if (!(t1 > t0)) return { err: "empty range" };
       const curT = this.all[this.cursor] ? this.all[this.cursor].t : null;
-      const trial = this.full.filter((b) => !(b.t >= t0 && b.t < t1));
-      if (trial.length < 30) return { err: "would remove too much" };
-      const removed = this.all.length - trial.length;
-      if (removed <= 0) return { err: "no bars in range" };
+      const inRange = (b) => b.t >= t0 && b.t < t1;
+      const removed = this.all.filter(inRange).length;   // bars that actually leave the sequence
+      if (removed <= 0) return { err: "nothing to cut there — that part is already cut" };
+      if (this.all.length - removed < 30) return { err: "would remove too much history" };
       this.cuts.push([t0, t1]);
       this._mergeCuts();
       this._saveCuts();

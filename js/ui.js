@@ -201,14 +201,15 @@
         const b = Chart.bars[i];
         if (!b || !box) return;
         const remain = Replay.all.filter((z) => z.t < b.t).length;
-        const tailN = Replay.full.filter((z) => z.t >= b.t).length;
+        const tailN = Replay.all.filter((z) => z.t >= b.t).length;
         const when = new Date(b.t * 1000).toISOString().slice(0, 16).replace("T", " ");
         const info = $("#ctInfo"), ok = $("#ctOk");
-        const tooLittle = remain < 30;
+        const tooLittle = remain < 30, already = tailN === 0;
         info.textContent = tooLittle
           ? "✗ Only " + remain + " bars would remain — pick earlier"
+          : already ? "✗ Already cut from here to the end"
           : "Cut " + tailN + " bars from " + when + " → END of history";
-        ok.disabled = tooLittle;
+        ok.disabled = tooLittle || already;
         box.hidden = false;
       };
       btn.onclick = () => {
