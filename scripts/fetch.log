@@ -1,0 +1,98 @@
+EURUSD 1m ... cached
+EURUSD 5m ... cached
+EURUSD 15m ... 3791 bars -> EURUSD_15m.json
+EURUSD 1h ... cached
+EURUSD 1d ... cached
+GBPUSD 1m ... cached
+GBPUSD 5m ... cached
+GBPUSD 15m ... 3792 bars -> GBPUSD_15m.json
+GBPUSD 1h ... cached
+GBPUSD 1d ... cached
+USDJPY 1m ... cached
+USDJPY 5m ... cached
+USDJPY 15m ... 3779 bars -> USDJPY_15m.json
+USDJPY 1h ... cached
+USDJPY 1d ... cached
+AUDUSD 1m ... cached
+AUDUSD 5m ... cached
+AUDUSD 15m ... 3796 bars -> AUDUSD_15m.json
+AUDUSD 1h ... cached
+AUDUSD 1d ... cached
+USDCAD 1m ... cached
+USDCAD 5m ... cached
+USDCAD 15m ... 3787 bars -> USDCAD_15m.json
+USDCAD 1h ... cached
+USDCAD 1d ... cached
+USDCHF 1m ... cached
+USDCHF 5m ... cached
+USDCHF 15m ... 3777 bars -> USDCHF_15m.json
+USDCHF 1h ... 6089 bars -> USDCHF_1h.json
+USDCHF 1d ... 1302 bars -> USDCHF_1d.json
+NZDUSD 1m ... 2823 bars -> NZDUSD_1m.json
+NZDUSD 5m ... 5958 bars -> NZDUSD_5m.json
+NZDUSD 15m ... 3796 bars -> NZDUSD_15m.json
+NZDUSD 1h ... 6148 bars -> NZDUSD_1h.json
+NZDUSD 1d ... 1302 bars -> NZDUSD_1d.json
+XAUUSD 1m ... HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: XAUUSD=X"}}}
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: XAUUSD=X"}}}
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+FAILED
+XAUUSD 5m ... 
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+FAILED
+XAUUSD 15m ... 
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+FAILED
+XAUUSD 1h ... 
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+FAILED
+XAUUSD 1d ... 
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+
+1 Failed download:
+['XAUUSD=X']: YFTzMissingError('possibly delisted; no timezone found')
+FAILED
+BTCUSD 1m ... 7195 bars -> BTCUSD_1m.json
+BTCUSD 5m ... 8640 bars -> BTCUSD_5m.json
+BTCUSD 15m ... 5280 bars -> BTCUSD_15m.json
+BTCUSD 1h ... 8728 bars -> BTCUSD_1h.json
+BTCUSD 1d ... 1830 bars -> BTCUSD_1d.json
+ETHUSD 1m ... 7195 bars -> ETHUSD_1m.json
+ETHUSD 5m ... 8640 bars -> ETHUSD_5m.json
+ETHUSD 15m ... 5280 bars -> ETHUSD_15m.json
+ETHUSD 1h ... 8728 bars -> ETHUSD_1h.json
+ETHUSD 1d ... 1830 bars -> ETHUSD_1d.json
+DONE

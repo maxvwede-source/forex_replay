@@ -1,0 +1,165 @@
+{
+ "generated": "2026-10-18T15:32:23.310153+00:00",
+ "symbols": [
+  {
+   "id": "EURUSD",
+   "yahoo": "EURUSD=X",
+   "name": "EUR/USD",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "Euro / US Dollar",
+   "files": {
+    "1m": "EURUSD_1m.json",
+    "5m": "EURUSD_5m.json",
+    "15m": "EURUSD_15m.json",
+    "1h": "EURUSD_1h.json"
+   }
+  },
+  {
+   "id": "GBPUSD",
+   "yahoo": "GBPUSD=X",
+   "name": "GBP/USD",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "British Pound / US Dollar",
+   "files": {
+    "1m": "GBPUSD_1m.json",
+    "5m": "GBPUSD_5m.json",
+    "15m": "GBPUSD_15m.json",
+    "1h": "GBPUSD_1h.json"
+   }
+  },
+  {
+   "id": "USDJPY",
+   "yahoo": "USDJPY=X",
+   "name": "USD/JPY",
+   "digits": 3,
+   "pip": 0.01,
+   "cat": "forex",
+   "desc": "US Dollar / Japanese Yen",
+   "files": {
+    "1m": "USDJPY_1m.json",
+    "5m": "USDJPY_5m.json",
+    "15m": "USDJPY_15m.json",
+    "1h": "USDJPY_1h.json"
+   }
+  },
+  {
+   "id": "AUDUSD",
+   "yahoo": "AUDUSD=X",
+   "name": "AUD/USD",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "Australian Dollar / US Dollar",
+   "files": {
+    "1m": "AUDUSD_1m.json",
+    "5m": "AUDUSD_5m.json",
+    "15m": "AUDUSD_15m.json",
+    "1h": "AUDUSD_1h.json"
+   }
+  },
+  {
+   "id": "USDCAD",
+   "yahoo": "USDCAD=X",
+   "name": "USD/CAD",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "US Dollar / Canadian Dollar",
+   "files": {
+    "1m": "USDCAD_1m.json",
+    "5m": "USDCAD_5m.json",
+    "15m": "USDCAD_15m.json",
+    "1h": "USDCAD_1h.json"
+   }
+  },
+  {
+   "id": "USDCHF",
+   "yahoo": "USDCHF=X",
+   "name": "USD/CHF",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "US Dollar / Swiss Franc",
+   "files": {
+    "1m": "USDCHF_1m.json",
+    "5m": "USDCHF_5m.json",
+    "15m": "USDCHF_15m.json",
+    "1h": "USDCHF_1h.json"
+   }
+  },
+  {
+   "id": "NZDUSD",
+   "yahoo": "NZDUSD=X",
+   "name": "NZD/USD",
+   "digits": 5,
+   "pip": 0.0001,
+   "cat": "forex",
+   "desc": "New Zealand Dollar / US Dollar",
+   "files": {
+    "1m": "NZDUSD_1m.json",
+    "5m": "NZDUSD_5m.json",
+    "15m": "NZDUSD_15m.json",
+    "1h": "NZDUSD_1h.json"
+   }
+  },
+  {
+   "id": "XAUUSD",
+   "yahoo": "GC=F",
+   "name": "XAU/USD",
+   "digits": 2,
+   "pip": 0.1,
+   "cat": "metal",
+   "desc": "Gold Spot / US Dollar",
+   "files": {
+    "1m": "XAUUSD_1m.json",
+    "5m": "XAUUSD_5m.json",
+    "15m": "XAUUSD_15m.json",
+    "1h": "XAUUSD_1h.json",
+    "1d": "XAUUSD_1d.json"
+   }
+  },
+  {
+   "id": "BTCUSD",
+   "yahoo": "BTC-USD",
+   "name": "BTC/USD",
+   "digits": 2,
+   "pip": 1.0,
+   "cat": "crypto",
+   "desc": "Bitcoin / US Dollar",
+   "files": {
+    "1m": "BTCUSD_1m.json",
+    "5m": "BTCUSD_5m.json",
+    "15m": "BTCUSD_15m.json",
+    "1h": "BTCUSD_1h.json",
+    "1d": "BTCUSD_1d.json"
+   }
+  },
+  {
+   "id": "ETHUSD",
+   "yahoo": "ETH-USD",
+   "name": "ETH/USD",
+   "digits": 2,
+   "pip": 0.1,
+   "cat": "crypto",
+   "desc": "Ethereum / US Dollar",
+   "files": {
+    "1m": "ETHUSD_1m.json",
+    "5m": "ETHUSD_5m.json",
+    "15m": "ETHUSD_15m.json",
+    "1h": "ETHUSD_1h.json",
+    "1d": "ETHUSD_1d.json"
+   }
+  }
+ ],
+ "timeframes": [
+  "1m",
+  "5m",
+  "15m",
+  "1h",
+  "1d"
+ ]
+}
