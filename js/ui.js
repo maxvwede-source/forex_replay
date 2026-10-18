@@ -149,6 +149,7 @@
       };
       $("#modeToggle").onclick = () => this.toggleMode();
       this._cutUI();
+      this._cutTailUI();
     },
 
     /* scissors: cut segments out of the playback sequence */
@@ -169,12 +170,14 @@
       };
       $("#rpCut").onclick = () => {
         if (!Replay.enabled) { this.toast("Scissors", "Switch to REPLAY mode first", "warn"); return; }
+        if (Chart.cutTail != null) this._cancelCutTail();
         if (Chart.cutMode) {                              // cancel
           Chart.cutMode = false; Chart.cutSel = null;
           $("#rpCut").classList.remove("active");
           Chart.requestRender();
           return;
         }
+        Tools.setTool("cursor");
         Chart.cutMode = true; Chart.cutSel = null;
         $("#rpCut").classList.add("active");
         Chart.requestRender();
@@ -191,13 +194,68 @@
       };
     },
 
+    /* hazard-striped CUT button: pick a start line, adjust it, cut everything to the end */
+    _cutTailUI() {
+      const btn = $("#cutTailBtn"), box = $("#cutTailConfirm");
+      Chart.onCutTailPick = (i) => {
+        const b = Chart.bars[i];
+        if (!b || !box) return;
+        const remain = Replay.all.filter((z) => z.t < b.t).length;
+        const tailN = Replay.full.filter((z) => z.t >= b.t).length;
+        const when = new Date(b.t * 1000).toISOString().slice(0, 16).replace("T", " ");
+        const info = $("#ctInfo"), ok = $("#ctOk");
+        const tooLittle = remain < 30;
+        info.textContent = tooLittle
+          ? "✗ Only " + remain + " bars would remain — pick earlier"
+          : "Cut " + tailN + " bars from " + when + " → END of history";
+        ok.disabled = tooLittle;
+        box.hidden = false;
+      };
+      btn.onclick = () => {
+        if (Chart.cutTail != null) { this._cancelCutTail(); return; }
+        if (Chart.cutMode) {
+          Chart.cutMode = false; Chart.cutSel = null;
+          const rb = $("#rpCut"); if (rb) rb.classList.remove("active");
+        }
+        Tools.setTool("cursor");
+        Chart.cutTail = 0;
+        btn.classList.add("active");
+        if (box) box.hidden = true;
+        Chart.requestRender();
+        this.toast("✂ Cut to end",
+          "Click the chart where the cut should start — drag the yellow line to adjust, then press OK", "warn");
+      };
+      $("#ctOk").onclick = () => {
+        const i = Chart.cutTail;
+        const b = (typeof i === "number" && i > 0) ? Chart.bars[i] : null;
+        if (!b) return;
+        const res = Replay.addCut(b.t, Number.MAX_SAFE_INTEGER);
+        this._cancelCutTail();
+        if (res.err) { this.toast("Cut failed", res.err, "bad"); return; }
+        Chart.setSeries(Replay.all, null, null, Replay.cursor);
+        Chart.onSeriesGrew();
+        this._syncTransport();
+        this.toast("✂ " + res.removed + " bars cut to the end",
+          "History now ends at " + this._ts(b.t) + " — trade it without seeing the future · ↺ restores", "warn");
+      };
+      $("#ctCancel").onclick = () => this._cancelCutTail();
+    },
+    _cancelCutTail() {
+      Chart.cutTail = null;
+      const box = $("#cutTailConfirm"); if (box) box.hidden = true;
+      const btn = $("#cutTailBtn"); if (btn) btn.classList.remove("active");
+      Chart.requestRender();
+    },
+
     async toggleMode() {
+      if (Chart.cutTail != null) this._cancelCutTail();
       if (this.mode === "live") {
         this.mode = "replay";
         Data.stopLive();
         document.body.classList.add("is-replay");
         Replay.setSeries(Replay.full, Replay.key);      // rebuild cut-filtered sequence
         Replay.enter(Replay.defIdx(0.72));
+        Chart.setSeries(Replay.all, null, null, Replay.cursor);  // align reveal with cut-filtered series
       } else {
         this.mode = "live";
         Replay.exit();
@@ -249,7 +307,10 @@
       $("#volBtn").onclick = (e) => { Chart.vol = !Chart.vol; e.currentTarget.classList.toggle("active", Chart.vol); Chart.requestRender(); };
       $("#volBtn").classList.add("active");
 
-      $$("#toolBar .tool[data-tool]").forEach((b) => b.onclick = () => Tools.setTool(b.dataset.tool));
+      $$("#toolBar .tool[data-tool]").forEach((b) => b.onclick = () => {
+        if (Chart.cutTail != null) this._cancelCutTail();   // drawing beats cutting
+        Tools.setTool(b.dataset.tool);
+      });
       $("#undoBtn").onclick = () => Tools.undo();
       $("#clearBtn").onclick = () => { if (confirm("Clear all drawings for " + Data.meta(this.symbol).name + "?")) Tools.clearAll(); };
 
@@ -286,6 +347,7 @@
         if (e.code === "ArrowRight") { e.preventDefault(); Replay.pause(); Replay.stepF(); return; }
         if (e.code === "ArrowLeft") { e.preventDefault(); Replay.pause(); Replay.stepB(); return; }
         if (e.key === "Escape") {
+          if (Chart.cutTail != null) this._cancelCutTail();
           if (Chart.cutMode) {
             Chart.cutMode = false; Chart.cutSel = null;
             const cb = $("#rpCut"); if (cb) cb.classList.remove("active");

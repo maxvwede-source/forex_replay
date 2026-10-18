@@ -14,6 +14,7 @@
     symbol: null,
     chart: null,
     _pending: null, // second click for point tools
+    _drag: null,    // adjusting an existing drawing: {kind:'anchor'|'body', it, ...}
 
     setChart(c) {
       this.chart = c;
@@ -105,6 +106,30 @@
       return false;
     },
 
+    /* which adjustable anchor (if any) is under the cursor for a SELECTED item */
+    _anchorAt(it, x, y) {
+      const c = this.chart;
+      const T = (t) => c.xOf(c._idxOfT2(t));
+      const P = (p) => c.yOf(p);
+      const near = (px, py) => Math.abs(px - x) <= 8 && Math.abs(py - y) <= 8;
+      if (it.p1 && it.p2) {
+        if (near(T(it.p1.t), P(it.p1.price))) return "p1";
+        if (near(T(it.p2.t), P(it.p2.price))) return "p2";
+        if (it.type === "long" || it.type === "short") {   // position tool: grab entry/stop lines
+          const x1 = T(it.p1.t), xe = x1 + 240;
+          if (x >= x1 - 4 && x <= xe + 4) {
+            if (Math.abs(P(it.p2.price) - y) < 5) return "p2";
+            if (Math.abs(P(it.p1.price) - y) < 5) return "p1";
+          }
+        }
+        return null;
+      }
+      if (it.p1) return near(T(it.p1.t), P(it.p1.price)) ? "p1" : null;
+      if (it.price != null) return Math.abs(P(it.price) - y) < 5 ? "price" : null;
+      if (it.t != null) return Math.abs(T(it.t) - x) < 5 ? "t" : null;
+      return null;
+    },
+
     _select(it) {
       this.sel = it;
       const box = document.getElementById("drawingBox");
@@ -122,15 +147,40 @@
 
     /* ---------------- mouse ---------------- */
     onMouseDown(x, y, e) {
-      if (this.active === "cursor" || x > this.chart.plotW() || y > this.chart.plotH()) return false;
-      e.preventDefault && e.preventDefault();
-      const p = { t: this._tAt(x), price: this.chart.priceOf(y) };
-      if (this._pending) {                       // second click completes point-to-point tool
-        this._pending.p2 = p;
+      const c = this.chart;
+      if (x > c.plotW() || y > c.plotH()) return false;
+
+      // 1) completing a 2-click tool keeps priority (click lands the second anchor)
+      if (this._pending && this.active !== "cursor") {
+        e.preventDefault && e.preventDefault();
+        this._pending.p2 = { t: this._tAt(x), price: c.priceOf(y) };
         this._commit(this._pending);
         this._pending = null; this.draft = null;
         return true;
       }
+
+      // 2) adjust an EXISTING drawing — anchor grab (when selected) or body drag (topmost hit).
+      //    Works with ANY tool armed: clicking a drawing adjusts it, never duplicates it.
+      const a = this.sel ? this._anchorAt(this.sel, x, y) : null;
+      if (a) {
+        e.preventDefault && e.preventDefault();
+        this._drag = { kind: "anchor", it: this.sel, a };
+        return true;
+      }
+      const hit = this._hit(x, y);
+      if (hit) {
+        e.preventDefault && e.preventDefault();
+        this._pending = null; this.draft = null;
+        this._select(hit); c.requestRender();
+        this._drag = { kind: "body", it: hit, t0: this._tAt(x), p0: c.priceOf(y),
+                       orig: { p1: hit.p1 ? { ...hit.p1 } : null, p2: hit.p2 ? { ...hit.p2 } : null,
+                               price: hit.price, t: hit.t } };
+        return true;
+      }
+
+      if (this.active === "cursor") return false;
+      e.preventDefault && e.preventDefault();
+      const p = { t: this._tAt(x), price: c.priceOf(y) };
       if (this.active === "hline") { this._commit({ type: "hline", price: p.price, color: this.color }); return true; }
       if (this.active === "vline") { this._commit({ type: "vline", t: p.t, color: this.color }); return true; }
       if (this.active === "text") {
@@ -140,11 +190,30 @@
       }
       // start draft (drag or 2-click)
       this.draft = { type: this.active, p1: p, p2: p, color: this.color };
-      this.chart.requestRender();
+      c.requestRender();
       return true;
     },
 
     onMouseMove(x, y, e) {
+      const c = this.chart;
+      if (this._drag) {                          // adjusting an existing drawing
+        const d = this._drag, it = d.it;
+        if (d.kind === "anchor") {
+          const t = this._tAt(x), price = c.priceOf(y);
+          if (d.a === "p1" || d.a === "p2") it[d.a] = { t, price };
+          else if (d.a === "price") it.price = price;
+          else if (d.a === "t") it.t = t;
+        } else {
+          const dT = this._tAt(x) - d.t0, dP = c.priceOf(y) - d.p0;
+          if (it.p1 && d.orig.p1) it.p1 = { t: d.orig.p1.t + dT, price: d.orig.p1.price + dP };
+          if (it.p2 && d.orig.p2) it.p2 = { t: d.orig.p2.t + dT, price: d.orig.p2.price + dP };
+          if (it.price != null && d.orig.price != null) it.price = d.orig.price + dP;
+          if (it.t != null && d.orig.t != null) it.t = d.orig.t + dT;
+        }
+        this._select(it);
+        c.requestRender();
+        return true;
+      }
       if (!this.draft) return false;
       this.draft.p2 = { t: this._tAt(x), price: this.chart.priceOf(y) };
       this.chart.requestRender();
@@ -152,6 +221,12 @@
     },
 
     onMouseUp(x, y, e) {
+      if (this._drag) {
+        this._drag = null;
+        this.save();
+        this.chart.requestRender();
+        return true;
+      }
       if (!this.draft) return false;
       const d = this.draft;
       const moved = Math.abs(x - this.chart.xOf(this.chart._idxOfT2(d.p1.t))) > 5 ||
@@ -192,6 +267,10 @@
       it.id = Date.now() + "_" + Math.random().toString(36).slice(2, 7);
       this.items.push(it);
       this.save();
+      // drawing finished -> back to cursor so the new item is adjustable right away;
+      // click the tool icon again when you want ANOTHER one (no accidental duplicates)
+      this.setTool("cursor");
+      this._select(it);
       this.chart.requestRender();
     },
 
@@ -323,12 +402,23 @@
           break;
         }
       }
-      // selection handles
-      if (sel && it.p1 && it.p2) {
+      // selection handles (2-point, single-point, hline, vline)
+      if (sel) {
         ctx.fillStyle = "#fff"; ctx.strokeStyle = col;
-        for (const pt of [it.p1, it.p2]) {
+        const pts = [];
+        if (it.p1 && it.p2) pts.push(it.p1, it.p2);
+        else if (it.p1) pts.push(it.p1);
+        for (const pt of pts) {
           const x = T(pt.t), y = P(pt.price);
           ctx.fillRect(x - 3.5, y - 3.5, 7, 7); ctx.strokeRect(x - 3.5, y - 3.5, 7, 7);
+        }
+        if (it.price != null && !it.p1) {           // hline handle
+          const y = P(it.price);
+          ctx.fillRect(14, y - 3.5, 7, 7); ctx.strokeRect(14, y - 3.5, 7, 7);
+        }
+        if (it.t != null && !it.p1) {               // vline handle
+          const x = T(it.t);
+          ctx.fillRect(x - 3.5, 30, 7, 7); ctx.strokeRect(x - 3.5, 30, 7, 7);
         }
       }
       ctx.restore();

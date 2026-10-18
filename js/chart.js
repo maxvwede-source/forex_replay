@@ -14,6 +14,8 @@
     cross: { x: 0, y: 0, on: false },
     revealIdx: -1,     // replay: last revealed bar index (-1 = all visible)
     cutMode: false,    // scissors: full history shown while picking a cut range
+    cutTail: null,     // cut-to-end: 0 = armed (pick start), >0 = chosen bar index, null = off
+    onCutTailPick: null, // (i) => void — start line picked/dragged, UI shows confirm bar
     cutSel: null,      // {i0,i1} transient selection band
     onCut: null,       // (i0, i1) => void  — user confirmed a cut range
     drawings: [],      // managed by Tools
@@ -260,6 +262,19 @@
       cv.addEventListener("pointerdown", (e) => {
         try { cv.setPointerCapture(e.pointerId); } catch (err) {}
         pointers.set(e.pointerId, this._ev(e));
+        if (this.cutTail != null) {                  // cut-to-end: pick / drag the start line
+          const { x, y } = this._ev(e);
+          if (typeof this.cutTail === "number" && this.cutTail > 0 &&
+              this.bars[this.cutTail] && Math.abs(x - this.xOf(this.cutTail)) < 14) {
+            drag = { kind: "cuttail" };              // grab the yellow line to adjust it
+          } else {
+            const i = Math.max(0, Math.min(this.bars.length - 1, Math.round(this.iOf(x))));
+            this.cutTail = i;
+            if (this.onCutTailPick) this.onCutTailPick(i);
+          }
+          this.requestRender();
+          return;
+        }
         if (pointers.size === 2) {                 // two-finger pinch: time zoom + pan
           drag = null; this.dragPriceLine = null;
           cv.classList.remove("panning");
@@ -325,6 +340,15 @@
         }
         if (Tools.onMouseMove(x, y, e)) return;
         if (drag) {
+          if (drag.kind === "cuttail") {
+            const i = Math.max(0, Math.min(this.bars.length - 1, Math.round(this.iOf(x))));
+            if (i !== this.cutTail) {
+              this.cutTail = i;
+              if (this.onCutTailPick) this.onCutTailPick(i);
+            }
+            this.requestRender();
+            return;
+          }
           if (drag.kind === "axis") { this._axisScale(drag, y); return; }
           if (drag.kind === "cut") {
             const i = Math.max(0, Math.min(this.bars.length - 1, this.iOf(x)));
@@ -381,7 +405,9 @@
       window.addEventListener("pointercancel", up);
 
       cv.addEventListener("dblclick", (e) => {
-        const { x } = this._ev(e);
+        const { x, y } = this._ev(e);
+        if (this.cutTail != null) return;                                  // never reset while cutting
+        if (typeof Tools !== "undefined" && Tools.active === "cursor" && Tools._hit(x, y)) return; // dblclick on a drawing = edit, not reset
         if (x > this.plotW()) this.priceAuto();
         else this.resetView();
       });
@@ -475,6 +501,7 @@
       Tools.draw(ctx, this);           // drawings overlay
       this._drawMarkers(ctx, pW, pH);
       this._drawCutSel(ctx, pW, pH);
+      this._drawCutTail(ctx, pW, pH);
       this._drawLastPrice(ctx, pW, pH);
       this._drawAxes(ctx, pW, pH, W, H);
       if (this.cross.on) this._drawCross(ctx, pW, pH);
@@ -506,6 +533,40 @@
       ctx.fillStyle = "#131722"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.fillText(label, lx + w / 2, 18);
       ctx.restore();
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    },
+
+    /* cut-to-end: hazard-striped zone from the picked line to the right edge */
+    _drawCutTail(ctx, pW, pH) {
+      if (this.cutTail == null) return;
+      const i = typeof this.cutTail === "number" && this.cutTail > 0 ? this.cutTail : -1;
+      if (i < 0 || !this.bars[i]) return;
+      const x = Math.round(this.xOf(i)) + 0.5;
+      const W = pW, H = pH;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(x, 0, W - x, H); ctx.clip();
+      ctx.fillStyle = "rgba(255,212,0,0.08)";
+      ctx.fillRect(x, 0, W - x, H);
+      ctx.strokeStyle = "rgba(0,0,0,0.55)"; ctx.lineWidth = 10;
+      for (let sx = x - H; sx < W + H; sx += 26) {
+        ctx.beginPath(); ctx.moveTo(sx, H); ctx.lineTo(sx + H, 0); ctx.stroke();
+      }
+      ctx.strokeStyle = "rgba(255,212,0,0.35)"; ctx.lineWidth = 4;
+      for (let sx = x - H + 13; sx < W + H; sx += 26) {
+        ctx.beginPath(); ctx.moveTo(sx, H); ctx.lineTo(sx + H, 0); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.strokeStyle = "#ffd400"; ctx.lineWidth = 2; ctx.setLineDash([9, 6]);
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+      ctx.setLineDash([]);
+      const label = "✂ CUT TO END";
+      ctx.font = "700 10px sans-serif";
+      const w = ctx.measureText(label).width + 16;
+      const tx = Math.max(4, Math.min(W - w - 4, x - w / 2));
+      ctx.fillStyle = "#131722"; ctx.fillRect(tx, 5, w, 18);
+      ctx.strokeStyle = "#ffd400"; ctx.lineWidth = 1; ctx.strokeRect(tx + 0.5, 5.5, w - 1, 17);
+      ctx.fillStyle = "#ffd400"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(label, tx + w / 2, 14);
       ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     },
 

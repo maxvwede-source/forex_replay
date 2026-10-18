@@ -65,6 +65,39 @@ input:focus,select:focus{border-color:var(--accent)}
 .mode-dot{width:7px; height:7px; border-radius:50%; background:var(--up); animation:pulse 1.4s infinite}
 .mode-toggle.replay .mode-dot{background:#7aa2ff; animation:none}
 
+/* ---- black/yellow hazard CUT button + confirm bar ---- */
+.cut-tail{
+  flex:none; width:62px; height:27px; border-radius:5px; padding:0; overflow:hidden;
+  border:1px solid #000; background:repeating-linear-gradient(45deg,#ffd400 0 7px,#131722 7px 14px);
+  cursor:pointer; line-height:0;
+}
+.cut-tail .ct-tag{
+  display:block; margin:3px 4px; background:rgba(15,18,26,.94); color:#ffd400;
+  font:800 10px/16px sans-serif; letter-spacing:.6px; border-radius:3px; text-align:center;
+}
+.cut-tail:hover{filter:brightness(1.12)}
+.cut-tail.active{outline:2px solid #ffd400; outline-offset:1px}
+#cutTailConfirm{
+  position:fixed; z-index:70; top:calc(var(--tb-h) + 8px); left:50%; transform:translateX(-50%);
+  display:flex; align-items:center; gap:10px; padding:7px 12px 7px 8px;
+  background:#1e222d; border:1px solid #ffd400; border-radius:6px;
+  box-shadow:0 8px 24px rgba(0,0,0,.5); max-width:calc(100vw - 20px);
+}
+#cutTailConfirm[hidden]{display:none}
+#cutTailConfirm .ct-hazard{
+  flex:none; width:26px; height:22px; border-radius:3px; border:1px solid #000;
+  background:repeating-linear-gradient(45deg,#ffd400 0 5px,#131722 5px 10px);
+}
+#ctInfo{font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#ctOk{
+  background:#26a69a; color:#fff; font-weight:700; font-size:12px;
+  padding:6px 12px; border-radius:5px; white-space:nowrap;
+}
+#ctOk:hover{filter:brightness(1.12)}
+#ctOk:disabled{opacity:.4; cursor:not-allowed}
+#ctCancel{background:var(--bg3); color:var(--text); font-size:12px; padding:6px 10px; border-radius:5px}
+#ctCancel:hover{background:var(--hover)}
+
 /* ================= LAYOUT ================= */
 body{padding-bottom:var(--sb-h)}
 #main{display:flex; height:calc(100vh - var(--tb-h) - var(--sb-h)); position:relative}

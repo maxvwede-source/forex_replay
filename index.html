@@ -50,12 +50,23 @@
       <div class="acct-item"><label>Open</label><b id="acctOpen">0</b></div>
     </div>
     <div class="sep"></div>
+    <button id="cutTailBtn" class="cut-tail" title="Cut from a point to the end of history (trade it blind)">
+      <span class="ct-tag">✂ CUT</span>
+    </button>
     <button id="modeToggle" class="mode-toggle" title="Switch Live / Replay mode">
       <span class="mode-dot live"></span><span id="modeLabel">LIVE</span>
     </button>
     <button id="settingsBtn" class="tb-btn" title="Settings">⚙</button>
   </div>
 </header>
+
+<!-- cut-to-end confirm bar (appears after picking the cut line) -->
+<div id="cutTailConfirm" hidden>
+  <span class="ct-hazard" aria-hidden="true"></span>
+  <span id="ctInfo">Cut to end</span>
+  <button id="ctOk">✓ OK — cut it</button>
+  <button id="ctCancel">✕</button>
+</div>
 
 <!-- ================= MAIN ================= -->
 <main id="main">
