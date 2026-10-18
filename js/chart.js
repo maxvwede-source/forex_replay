@@ -43,6 +43,8 @@
       this.dpr = window.devicePixelRatio || 1;
       this.cv.width = Math.round(this.w * this.dpr);
       this.cv.height = Math.round(this.h * this.dpr);
+      this.view.bw = Math.min(this.view.bw, this._maxBw());   // window shrank -> keep >=12 bars
+      this.clampView();
       this.requestRender();
     },
 
@@ -56,6 +58,7 @@
       const vis = this._visCount();
       if (this.view.follow || this.view.first <= 0)
         this.view.first = Math.max(0, this._rIdx() + 6 - vis);
+      this.clampView();
       this.requestRender();
     },
 
@@ -130,10 +133,11 @@
     },
 
     /* ---------------- view ops ---------------- */
+    _maxBw() { return Math.min(60, Math.max(6, this.plotW() / 12)); },  // never fewer than ~12 bars on screen
     zoomBars(factor, cx) {
       const bw0 = this.view.bw;
       let bw = bw0 * factor;
-      bw = Math.max(1.2, Math.min(60, bw));
+      bw = Math.max(1.2, Math.min(this._maxBw(), bw));
       if (bw === bw0) return;
       const anchor = cx == null ? null : this.iOf(cx);
       this.view.bw = bw;
@@ -142,7 +146,7 @@
         this.view.first = anchor + (0.5 - cx / bw) - 0.0;
         this.view.first = anchor - (cx / bw) + 0.5;
       }
-      this.view.follow = this._atRight();
+      this.clampView();
       this.requestRender();
     },
     _atRight() {
@@ -152,7 +156,7 @@
     pan(barsDelta) {
       const maxFirst = Math.max(0, this._rIdx() + 6 - this._visCount());
       this.view.first = Math.max(-2, Math.min(maxFirst, this.view.first + barsDelta));
-      this.view.follow = this._atRight();
+      this.clampView();
       this.requestRender();
     },
     resetView() {
@@ -168,15 +172,64 @@
       const base = Math.abs(last ? last.c : 1);
       span = Math.max(base * 1e-6, Math.min(base * 10, span));
       this.view.pManual = { center: c, span };
+      this.clampView();
       this.requestRender();
     },
     pricePan(dy) {
       const r = this.priceRange();
       const d = (dy / this.plotH()) * (r.hi - r.lo);
       this.view.pManual = { center: (r.hi + r.lo) / 2 + d, span: r.hi - r.lo };
+      this.clampView();
       this.requestRender();
     },
     priceAuto() { this.view.pManual = null; this.requestRender(); },
+
+    /* Never let the viewport drift into blank space (MT5/TV behaviour):
+       - time: keep revealed bars on screen (never past the reveal edge)
+       - price deep-zoom: window must stay INSIDE the visible candles
+       - price wide view: candles' mid must sit in the middle 70% of the window
+       Called after every zoom / pan / pinch / axis manipulation. */
+    clampView() {
+      const vis = this._visCount();
+      const maxFirst = Math.max(0, this._rIdx() + 6 - vis);
+      this.view.first = Math.max(-2, Math.min(maxFirst, this.view.first));
+      this.view.follow = this._atRight();
+      if (this.view.pManual && this.bars.length) {
+        const { i0, i1 } = this._range();
+        let dLo = Infinity, dHi = -Infinity, n = 0;
+        for (let i = i0; i <= i1 && i < this.bars.length; i++) {
+          const b = this.bars[i];
+          if (b.l < dLo) dLo = b.l;
+          if (b.h > dHi) dHi = b.h;
+          n++;
+        }
+        if (!n) {
+          const r = this.revealedBar();
+          if (!r) return;
+          dLo = r.l; dHi = r.h;
+        }
+        if (this.posLines && this.posLines.length) {   // TP/SL/entry lines are reachable targets too
+          for (const l of this.posLines) {
+            if (l.price < dLo) dLo = l.price;
+            if (l.price > dHi) dHi = l.price;
+          }
+        }
+        const p = this.view.pManual;
+        const span = Math.max(p.span, 1e-10);
+        const dataSpan = dHi - dLo;
+        const lo = p.center - span / 2, hi = p.center + span / 2;
+        if (span < dataSpan) {                       // deep zoom: stay inside the candles
+          if (lo < dLo) p.center += dLo - lo;
+          else if (hi > dHi) p.center -= hi - dHi;
+        } else if (span >= dataSpan * 2) {           // lots of slack: centre like MT5 auto-scale
+          p.center = (dLo + dHi) / 2;
+        } else {                                     // medium: never let any candle leave the screen
+          if (hi < dHi) p.center += dHi - hi;
+          else if (lo > dLo) p.center += dLo - lo;
+        }
+      }
+    },
+
 
     /* MT5-style price axis drag: down = compress scale (see full range),
        up = expand. Anchored at the price under the grab point. */
@@ -186,6 +239,7 @@
       const a = drag.anchor;
       const ctr = (lo + hi) / 2;
       this.view.pManual = { center: a + (ctr - a) * k, span: (hi - lo) * k };
+      this.clampView();
       this.requestRender();
     },
 
@@ -195,6 +249,13 @@
       let drag = null;
       const pointers = new Map();
       let pinch = null;
+
+      // iOS Safari: block browser page-zoom gestures so canvas pinch never scrolls the page
+      if (!this._gestBound) {
+        this._gestBound = true;
+        ["gesturestart", "gesturechange"].forEach((t) =>
+          document.addEventListener(t, (e) => e.preventDefault(), { passive: false }));
+      }
 
       cv.addEventListener("pointerdown", (e) => {
         try { cv.setPointerCapture(e.pointerId); } catch (err) {}
@@ -243,13 +304,14 @@
           const pts = [...pointers.values()].slice(0, 2);
           const d = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1;
           const cx = (pts[0].x + pts[1].x) / 2, cy = (pts[0].y + pts[1].y) / 2;
-          const bw = Math.max(1.2, Math.min(60, pinch.bw * (d / pinch.d)));
+          const bw = Math.max(1.2, Math.min(this._maxBw(), pinch.bw * (d / pinch.d)));
           const anchorI = pinch.first + pinch.cx / pinch.bw;
           this.view.bw = bw;
           this.view.first = anchorI - cx / bw;
           this.view.follow = this._atRight();
           const span = pinch.hi - pinch.lo;
           this.view.pManual = { center: (pinch.hi + pinch.lo) / 2 + ((cy - pinch.cy) / this.plotH()) * span, span };
+          this.clampView();
           this.requestRender();
           return;
         }
@@ -274,7 +336,7 @@
             const dx = x - drag.x;
             if (Math.abs(dx) > 3) drag.moved = true;
             this.view.first = drag.first - dx / this.view.bw;
-            this.view.follow = this._atRight();
+            this.clampView();
           }
           this.requestRender();
           return;
@@ -654,6 +716,25 @@
       if (!b) return;
       const y = this.yOf(b.c);
       if (y < 0 || y > pH) return;
+      // MT5-style ask line (bid + spread), thin dashed grey — hidden label if it would collide
+      const sp = (this.meta && this.meta.spread > 0 && this.meta.pip) ? this.meta.spread * this.meta.pip : 0;
+      if (sp > 0) {
+        const askP = b.c + sp, ya = this.yOf(askP);
+        if (ya >= 0 && ya <= pH) {
+          ctx.save();
+          ctx.strokeStyle = "#8a8e98"; ctx.setLineDash([3, 4]); ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(0, Math.round(ya) + 0.5); ctx.lineTo(pW, Math.round(ya) + 0.5); ctx.stroke();
+          ctx.setLineDash([]);
+          if (Math.abs(ya - y) > 24) {
+            ctx.fillStyle = "#8a8e98";
+            ctx.fillRect(pW + 1, ya - 8, this.priceW - 2, 16);
+            ctx.fillStyle = "#131722"; ctx.font = "700 10px sans-serif";
+            ctx.textAlign = "center"; ctx.textBaseline = "middle";
+            ctx.fillText(askP.toFixed(this.digits), pW + (this.priceW - 2) / 2, ya);
+          }
+          ctx.restore();
+        }
+      }
       const up = b.c >= b.o;
       ctx.save();
       ctx.strokeStyle = up ? UP : DOWN; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;

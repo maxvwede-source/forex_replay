@@ -716,9 +716,13 @@
           if (this.mode === "replay" || !b) el.textContent = "";
           else {
             const tfSec = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1D": 86400, "1W": 604800 }[this.tf] || 3600;
-            const left = Math.max(0, Math.floor((b.t + tfSec) * 1000 - now.getTime()) / 1000);
-            const mm = Math.floor(left / 60), ss = left % 60;
-            el.textContent = left >= 60 ? "closes " + mm + ":" + p(ss) : left + "s";
+            const left = Math.max(0, Math.floor(((b.t + tfSec) * 1000 - now.getTime()) / 1000));
+            const hh = Math.floor(left / 3600), mm = Math.floor((left % 3600) / 60), ss = left % 60;
+            el.textContent =
+              left < 60   ? "closes " + left + "s" :
+              left < 3600 ? "closes " + p(mm) + ":" + p(ss) :
+              left < 86400 ? "closes " + hh + ":" + p(mm) + ":" + p(ss) :
+                            "closes " + Math.floor(hh / 24) + "d " + p(hh % 24) + ":" + p(mm) + ":" + p(ss);
           }
         }
         const barsEl = $("#sbBars");
