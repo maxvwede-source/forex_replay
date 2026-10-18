@@ -12,6 +12,10 @@
     view: { bw: 9, first: 0, follow: true, pManual: null },  // pManual {center, span}|null
     type: "candles", ema: false, vol: true,
     cross: { x: 0, y: 0, on: false },
+    revealIdx: -1,     // replay: last revealed bar index (-1 = all visible)
+    cutMode: false,    // scissors: full history shown while picking a cut range
+    cutSel: null,      // {i0,i1} transient selection band
+    onCut: null,       // (i0, i1) => void  — user confirmed a cut range
     drawings: [],      // managed by Tools
     markers: [],       // trade markers [{t, price, dir, kind, pnl}]
     posLines: [],      // [{role, t1, price, color, tag, tagSub, id}] rendered + hit-tested
@@ -43,21 +47,31 @@
     },
 
     /* ---------------- series ---------------- */
-    setSeries(bars, meta, tf) {
-      this.bars = bars;
+    setSeries(bars, meta, tf, reveal) {
+      this.bars = bars || [];
       if (meta) { this.meta = meta; this.symbol = meta.id; this.digits = meta.digits; }
       if (tf) this.tf = tf;
+      this.revealIdx = reveal == null ? -1 : reveal;
       this.emaCache = null;
       const vis = this._visCount();
       if (this.view.follow || this.view.first <= 0)
-        this.view.first = Math.max(0, bars.length + 6 - vis);
+        this.view.first = Math.max(0, this._rIdx() + 6 - vis);
       this.requestRender();
     },
+
+    /* last index allowed to render (replay reveal, or full while cutting) */
+    _rIdx() {
+      const n = this.bars.length - 1;
+      if (n < 0) return -1;
+      if (this.cutMode || this.revealIdx < 0) return n;
+      return Math.min(this.revealIdx, n);
+    },
+    revealedBar() { const i = this._rIdx(); return i >= 0 ? this.bars[i] : null; },
 
     /* keep chart pinned to right edge when following */
     onSeriesGrew() {
       const vis = this._visCount();
-      const maxFirst = Math.max(0, this.bars.length + 6 - vis);
+      const maxFirst = Math.max(0, this._rIdx() + 6 - vis);
       if (this.view.follow) this.view.first = maxFirst;
     },
 
@@ -77,7 +91,7 @@
     _range() {
       const n = this.bars.length;
       let i0 = Math.max(0, Math.floor(this.view.first));
-      let i1 = Math.min(n - 1, Math.ceil(this.view.first + this._visCount()));
+      let i1 = Math.min(this._rIdx(), Math.ceil(this.view.first + this._visCount()));
       if (i1 < i0) i1 = i0;
       return { i0, i1 };
     },
@@ -132,25 +146,26 @@
       this.requestRender();
     },
     _atRight() {
-      const maxFirst = Math.max(0, this.bars.length + 6 - this._visCount());
+      const maxFirst = Math.max(0, this._rIdx() + 6 - this._visCount());
       return this.view.first >= maxFirst - 1.2;
     },
     pan(barsDelta) {
-      const maxFirst = Math.max(0, this.bars.length + 6 - this._visCount());
+      const maxFirst = Math.max(0, this._rIdx() + 6 - this._visCount());
       this.view.first = Math.max(-2, Math.min(maxFirst, this.view.first + barsDelta));
       this.view.follow = this._atRight();
       this.requestRender();
     },
     resetView() {
       this.view.bw = 9; this.view.pManual = null; this.view.follow = true;
-      this.view.first = Math.max(0, this.bars.length + 6 - this._visCount());
+      this.view.first = Math.max(0, this._rIdx() + 6 - this._visCount());
       this.requestRender();
     },
     priceZoom(factor, y) {
       const r = this.priceRange();
       const c = r.lo + ((this.plotH() - y) / this.plotH()) * (r.hi - r.lo);
       let span = (r.hi - r.lo) * factor;
-      const base = Math.abs(this.bars.length ? this.bars[this.bars.length - 1].c : 1);
+      const last = this.revealedBar();
+      const base = Math.abs(last ? last.c : 1);
       span = Math.max(base * 1e-6, Math.min(base * 10, span));
       this.view.pManual = { center: c, span };
       this.requestRender();
@@ -162,6 +177,17 @@
       this.requestRender();
     },
     priceAuto() { this.view.pManual = null; this.requestRender(); },
+
+    /* MT5-style price axis drag: down = compress scale (see full range),
+       up = expand. Anchored at the price under the grab point. */
+    _axisScale(drag, y) {
+      const k = Math.max(0.15, Math.min(12, Math.exp((y - drag.y0) * 0.005)));
+      const { lo, hi } = drag.pr0;
+      const a = drag.anchor;
+      const ctr = (lo + hi) / 2;
+      this.view.pManual = { center: a + (ctr - a) * k, span: (hi - lo) * k };
+      this.requestRender();
+    },
 
     /* ---------------- interaction (mouse + touch via pointer events) ---------------- */
     _bind() {
@@ -194,7 +220,19 @@
           this.dragPriceLine = { line, y0: y, price0: line.price, moved: false };
           return;
         }
-        if (x > this.plotW()) { drag = { kind: "axis", y: y }; cv.style.cursor = "ns-resize"; return; }
+        if (x > this.plotW()) {
+          const pr = this.priceRange();
+          drag = { kind: "axis", y0: y, pr0: pr, anchor: this.priceOf(y) };
+          cv.style.cursor = "ns-resize";
+          return;
+        }
+        if (this.cutMode) {
+          const i = Math.max(0, Math.min(this.bars.length - 1, this.iOf(x)));
+          drag = { kind: "cut", i0: i };
+          this.cutSel = { i0: i, i1: i };
+          this.requestRender();
+          return;
+        }
         drag = { kind: "pan", x: x, first: this.view.first, moved: false };
         cv.classList.add("panning");
       });
@@ -225,8 +263,14 @@
         }
         if (Tools.onMouseMove(x, y, e)) return;
         if (drag) {
-          if (drag.kind === "axis") this.pricePan(y - drag.y), (drag.y = y);
-          else {
+          if (drag.kind === "axis") { this._axisScale(drag, y); return; }
+          if (drag.kind === "cut") {
+            const i = Math.max(0, Math.min(this.bars.length - 1, this.iOf(x)));
+            this.cutSel = { i0: Math.min(drag.i0, i), i1: Math.max(drag.i0, i) };
+            this.requestRender();
+            return;
+          }
+          if (drag.kind === "pan") {
             const dx = x - drag.x;
             if (Math.abs(dx) > 3) drag.moved = true;
             this.view.first = drag.first - dx / this.view.bw;
@@ -256,7 +300,13 @@
         }
         Tools.onMouseUp(this._ev(e).x, this._ev(e).y, e);
         if (drag) {
-          if (drag.kind === "pan") {
+          if (drag.kind === "cut") {
+            const sel = this.cutSel;
+            this.cutMode = false;
+            this.cutSel = null;
+            if (this.onCut && sel && sel.i1 > sel.i0) this.onCut(sel.i0, sel.i1);
+            else this.requestRender();
+          } else if (drag.kind === "pan") {
             if (!drag.moved) Tools.onClick(this._ev(e).x, this._ev(e).y, e);
             this.view.follow = this._atRight();
           }
@@ -298,7 +348,8 @@
       if (!this.onCursor) return;
       if (!this.cross.on) { this.onCursor(null, -1); return; }
       const i = this.iOf(this.cross.x);
-      const b = (i >= 0 && i < this.bars.length) ? this.bars[i] : null;
+      if (i < 0 || i > this._rIdx()) { this.onCursor(null, -1); return; }
+      const b = (i < this.bars.length) ? this.bars[i] : null;
       this.onCursor(b, i);
     },
 
@@ -361,6 +412,7 @@
       this._drawPosLines(ctx, pW, pH);
       Tools.draw(ctx, this);           // drawings overlay
       this._drawMarkers(ctx, pW, pH);
+      this._drawCutSel(ctx, pW, pH);
       this._drawLastPrice(ctx, pW, pH);
       this._drawAxes(ctx, pW, pH, W, H);
       if (this.cross.on) this._drawCross(ctx, pW, pH);
@@ -368,6 +420,31 @@
       ctx.strokeStyle = AXISC; ctx.lineWidth = 1;
       ctx.strokeRect(pW + 0.5, 0.5, W - pW - 1, H - 1);
       ctx.beginPath(); ctx.moveTo(0, pH + 0.5); ctx.lineTo(W, pH + 0.5); ctx.stroke();
+    },
+
+    /* scissors selection band */
+    _drawCutSel(ctx, pW, pH) {
+      if (!this.cutMode || !this.cutSel) return;
+      const s = this.cutSel;
+      if (s.i1 < s.i0) return;
+      const bw = this.view.bw;
+      const x0 = this.xOf(s.i0) - bw / 2, x1 = this.xOf(s.i1) + bw / 2;
+      ctx.save();
+      ctx.fillStyle = "rgba(240,185,11,0.14)";
+      ctx.fillRect(x0, 0, x1 - x0, pH);
+      ctx.strokeStyle = "#f0b90b"; ctx.setLineDash([5, 4]); ctx.lineWidth = 1;
+      ctx.strokeRect(Math.round(x0) + 0.5, 0.5, Math.round(x1 - x0) - 1, pH - 1);
+      ctx.setLineDash([]);
+      const label = "✂ " + (s.i1 - s.i0 + 1) + " bars — release to cut";
+      ctx.font = "700 11px sans-serif";
+      const w = ctx.measureText(label).width + 18;
+      const lx = Math.max(2, Math.min((x0 + x1) / 2 - w / 2, pW - w - 2));
+      ctx.fillStyle = "#f0b90b";
+      this._rr(ctx, lx, 8, w, 20, 5); ctx.fill();
+      ctx.fillStyle = "#131722"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(label, lx + w / 2, 18);
+      ctx.restore();
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     },
 
     /* TradingView-style faint watermark behind the candles */
@@ -534,7 +611,9 @@
     },
 
     _drawMarkers(ctx, pW, pH) {
+      const rev = this.revealedBar();
       for (const m of this.markers) {
+        if (rev && m.t > rev.t) continue;
         const i = this._idxOfT(m.t);
         if (i < 0) continue;
         const x = this.xOf(i), y = this.yOf(m.price);
@@ -571,8 +650,8 @@
     },
 
     _drawLastPrice(ctx, pW, pH) {
-      if (!this.bars.length) return;
-      const b = this.bars[this.bars.length - 1];
+      const b = this.revealedBar();
+      if (!b) return;
       const y = this.yOf(b.c);
       if (y < 0 || y > pH) return;
       const up = b.c >= b.o;
@@ -655,7 +734,7 @@
       ctx.fillText(this._fmtP(p), pW + 7, y);
       // time label
       const i = this.iOf(x);
-      if (i >= 0 && i < this.bars.length) {
+      if (i >= 0 && i < this.bars.length && i <= this._rIdx()) {
         const d = new Date(this.bars[i].t * 1000);
         const txt = d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" +
                     String(d.getUTCDate()).padStart(2, "0") + " " +

@@ -58,14 +58,14 @@
       let bars;
       try { bars = await Data.bars(this.symbol, this.tf); }
       catch (e) { this.toast("No data for " + meta.name + " " + this.tf, String(e.message || e), "bad"); return; }
-      Replay.all = bars;
+      Replay.setSeries(bars, this.symbol + "_" + this.tf);
       Replay.pause();
       Replay.enabled = this.mode === "replay";
-      Replay.cursor = this.mode === "replay" ? Replay.defIdx(0.72) : bars.length - 1;
-      Chart.setSeries(Replay.visible(), meta, this.tf);
+      Replay.cursor = this.mode === "replay" ? Replay.defIdx(0.72) : Replay.all.length - 1;
+      Chart.setSeries(Replay.all, meta, this.tf, Replay.enabled ? Replay.cursor : -1);
       this._lastLiveBarT = null;
       $("#lgSym").textContent = meta.name + " · " + this.tf.toUpperCase();
-      $("#rpSlider").max = Math.max(60, bars.length - 1);
+      $("#rpSlider").max = Math.max(60, Replay.all.length - 1);
       $("#rpSlider").min = 0;
       this._feed();
       this._syncTransport();
@@ -102,7 +102,7 @@
 
     priceNow(sym) {
       if (sym === this.symbol) {
-        const b = Chart.bars[Chart.bars.length - 1];
+        const b = Chart.revealedBar();
         return b ? b.c : null;
       }
       const c = Data.cache;
@@ -114,7 +114,7 @@
 
     /* =============== replay wiring =============== */
     async _stepForward(cursor, bar, silent) {
-      Chart.setSeries(Replay.visible(), null, null);
+      Chart.setSeries(Replay.all, null, null, Replay.enabled ? cursor : -1);
       Chart.onSeriesGrew();
       this._syncTransport();
       if (!silent && bar && Replay.enabled) {
@@ -148,6 +148,47 @@
         Replay.seekTime(Date.parse(v) / 1000);
       };
       $("#modeToggle").onclick = () => this.toggleMode();
+      this._cutUI();
+    },
+
+    /* scissors: cut segments out of the playback sequence */
+    _cutUI() {
+      Chart.onCut = (i0, i1) => {
+        const b0 = Chart.bars[i0], b1 = Chart.bars[i1];
+        const cutBtn = $("#rpCut");
+        if (cutBtn) cutBtn.classList.remove("active");
+        if (!b0 || !b1) { Chart.requestRender(); return; }
+        const tfSec = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1D": 86400, "1W": 604800 }[this.tf] || 3600;
+        const res = Replay.addCut(b0.t, b1.t + tfSec);
+        if (res.err) { this.toast("Cut failed", res.err, "bad"); Chart.requestRender(); return; }
+        Chart.setSeries(Replay.all, null, null, Replay.cursor);
+        Chart.onSeriesGrew();
+        this._syncTransport();
+        this.toast("✂ " + res.removed + " bars cut",
+          "Playback will skip that segment — tap ↺ to bring it back", "warn");
+      };
+      $("#rpCut").onclick = () => {
+        if (!Replay.enabled) { this.toast("Scissors", "Switch to REPLAY mode first", "warn"); return; }
+        if (Chart.cutMode) {                              // cancel
+          Chart.cutMode = false; Chart.cutSel = null;
+          $("#rpCut").classList.remove("active");
+          Chart.requestRender();
+          return;
+        }
+        Chart.cutMode = true; Chart.cutSel = null;
+        $("#rpCut").classList.add("active");
+        Chart.requestRender();
+        this.toast("Scissors active",
+          "Full history shown — drag across the chart to cut that segment out of playback", "warn");
+      };
+      $("#rpRestore").onclick = () => {
+        const n = Replay.clearCuts();
+        if (!n) return;
+        Chart.setSeries(Replay.all, null, null, Replay.cursor);
+        Chart.onSeriesGrew();
+        this._syncTransport();
+        this.toast("Cuts restored", n + " segment" + (n > 1 ? "s" : "") + " back in the playback", "warn");
+      };
     },
 
     async toggleMode() {
@@ -155,13 +196,16 @@
         this.mode = "replay";
         Data.stopLive();
         document.body.classList.add("is-replay");
+        Replay.setSeries(Replay.full, Replay.key);      // rebuild cut-filtered sequence
         Replay.enter(Replay.defIdx(0.72));
       } else {
         this.mode = "live";
         Replay.exit();
         document.body.classList.remove("is-replay");
         Replay.enabled = false;
-        Chart.setSeries(Replay.all, null, null);
+        Chart.cutMode = false; Chart.cutSel = null;
+        const cutBtn = $("#rpCut"); if (cutBtn) cutBtn.classList.remove("active");
+        Chart.setSeries(Replay.full, null, null, -1);
         Data.startLive(this.symbol, this.tf, (arr, src) => this._liveArrived(arr, src));
       }
       this._syncTransport();
@@ -183,7 +227,9 @@
       const b = Replay.currentBar();
       $("#rpTime").textContent = b ? this._ts(b.t, true) : "—";
       $("#rpCount").textContent = Replay.all.length
-        ? "bar " + (Replay.cursor + 1) + " / " + Replay.all.length : "";
+        ? "bar " + (Replay.cursor + 1) + " / " + Replay.all.length +
+          (Replay.cutCount() ? " · ✂" + Replay.cutCount() : "") : "";
+      const rb = $("#rpRestore"); if (rb) rb.hidden = !Replay.cutCount();
       if (b) {
         const d = new Date(b.t * 1000 - new Date().getTimezoneOffset() * 60000);
         $("#jumpDate").value = d.toISOString().slice(0, 16);
@@ -239,7 +285,14 @@
         if (e.code === "Space") { e.preventDefault(); Replay.toggle(); return; }
         if (e.code === "ArrowRight") { e.preventDefault(); Replay.pause(); Replay.stepF(); return; }
         if (e.code === "ArrowLeft") { e.preventDefault(); Replay.pause(); Replay.stepB(); return; }
-        if (e.key === "Escape") { Tools.setTool("cursor"); this._closeModals(); return; }
+        if (e.key === "Escape") {
+          if (Chart.cutMode) {
+            Chart.cutMode = false; Chart.cutSel = null;
+            const cb = $("#rpCut"); if (cb) cb.classList.remove("active");
+            Chart.requestRender();
+          }
+          Tools.setTool("cursor"); this._closeModals(); return;
+        }
         if (e.key === "Delete" || e.key === "Backspace") {
           if (Tools.sel) { Tools.items = Tools.items.filter((x) => x !== Tools.sel); Tools._select(null); Tools.save(); Chart.requestRender(); }
           return;
@@ -252,7 +305,7 @@
 
     /* =============== legend =============== */
     _legend(bar) {
-      const b = bar || Chart.bars[Chart.bars.length - 1];
+      const b = bar || Chart.revealedBar();
       if (!b) return;
       const d = Data.meta(this.symbol).digits;
       $("#lgO").textContent = b.o.toFixed(d);
@@ -262,7 +315,8 @@
       const chg = b.c - b.o;
       const el = $("#lgChg");
       const bars = Chart.bars;
-      const ref = bar ? b.o : (bars.length > 1 ? bars[bars.length - 2].c : b.o);
+      const rev = Chart.revealedBar();
+      const ref = bar ? b.o : (bars.length > 1 ? (rev || bars[bars.length - 1]).c : b.o);
       const diff = bar ? chg : b.c - ref;
       el.textContent = (diff >= 0 ? "+" : "") + diff.toFixed(d) + " (" + ((diff / ref) * 100).toFixed(2) + "%)";
       el.className = "chg " + (diff >= 0 ? "pos" : "neg");
@@ -658,9 +712,9 @@
         if (c) c.textContent = p(now.getUTCHours()) + ":" + p(now.getUTCMinutes()) + ":" + p(now.getUTCSeconds()) + " UTC";
         const el = $("#lgCount");
         if (el) {
-          if (this.mode === "replay" || !Chart.bars.length) el.textContent = "";
+          const b = Chart.revealedBar();
+          if (this.mode === "replay" || !b) el.textContent = "";
           else {
-            const b = Chart.bars[Chart.bars.length - 1];
             const tfSec = { "1m": 60, "5m": 300, "15m": 900, "30m": 1800, "1h": 3600, "4h": 14400, "1D": 86400, "1W": 604800 }[this.tf] || 3600;
             const left = Math.max(0, Math.floor((b.t + tfSec) * 1000 - now.getTime()) / 1000);
             const mm = Math.floor(left / 60), ss = left % 60;

@@ -3,14 +3,95 @@
   "use strict";
 
   const Replay = {
-    all: [],        // full series
-    cursor: 0,      // index of last revealed bar
+    all: [],        // series actually played (full minus cut segments)
+    full: [],       // complete series (source of truth)
+    cuts: [],       // [[t0,t1], ...] removed segments, persisted per symbol+tf
+    key: null,      // persistence key "SYM_tf"
+    cursor: 0,      // index of last revealed bar (into `all`)
     playing: false,
     speed: 4,       // bars per second base
     timer: null,
     enabled: false, // replay mode active
     onStep: null,   // (cursor, bar) => void
     onToggle: null,
+
+    /* -------- series with cuts -------- */
+    setSeries(full, key) {
+      const curT = this.all[this.cursor] ? this.all[this.cursor].t : null;
+      this.full = full || [];
+      if (key) this.key = key;
+      this.cuts = this._loadCuts();
+      this.all = this._applyCuts();
+      if (curT != null) this.cursor = this._tIndex(curT);
+      else this.cursor = Math.min(this.cursor, Math.max(0, this.all.length - 1));
+      return this.all;
+    },
+    _applyCuts() {
+      if (!this.cuts.length) return this.full.slice();
+      const cuts = this.cuts;
+      return this.full.filter((b) => {
+        for (const c of cuts) if (b.t >= c[0] && b.t < c[1]) return false;
+        return true;
+      });
+    },
+    /* index of first bar with t >= given time (clamped) */
+    _tIndex(t) {
+      const a = this.all;
+      let lo = 0, hi = a.length - 1, best = a.length - 1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        if (a[mid].t >= t) { best = mid; hi = mid - 1; } else lo = mid + 1;
+      }
+      return best;
+    },
+    _loadCuts() {
+      if (!this.key) return [];
+      try {
+        const raw = localStorage.getItem("fr_cuts_" + this.key);
+        const j = raw ? JSON.parse(raw) : [];
+        return Array.isArray(j) ? j.filter((c) => Array.isArray(c) && c.length === 2) : [];
+      } catch (e) { return []; }
+    },
+    _saveCuts() {
+      if (!this.key) return;
+      try { localStorage.setItem("fr_cuts_" + this.key, JSON.stringify(this.cuts)); } catch (e) {}
+    },
+    _mergeCuts() {
+      this.cuts.sort((a, b) => a[0] - b[0]);
+      const out = [];
+      for (const c of this.cuts) {
+        const last = out[out.length - 1];
+        if (last && c[0] <= last[1]) last[1] = Math.max(last[1], c[1]);
+        else out.push([c[0], c[1]]);
+      }
+      this.cuts = out;
+    },
+    /* remove bars in [t0, t1); returns {removed} or {err} */
+    addCut(t0, t1) {
+      if (t1 <= t0) return { err: "empty range" };
+      const curT = this.all[this.cursor] ? this.all[this.cursor].t : null;
+      const trial = this.full.filter((b) => !(b.t >= t0 && b.t < t1));
+      if (trial.length < 30) return { err: "would remove too much" };
+      const removed = this.all.length - trial.length;
+      if (removed <= 0) return { err: "no bars in range" };
+      this.cuts.push([t0, t1]);
+      this._mergeCuts();
+      this._saveCuts();
+      this.all = this._applyCuts();
+      this.cursor = curT != null ? this._tIndex(curT) : Math.min(this.cursor, this.all.length - 1);
+      return { removed };
+    },
+    clearCuts() {
+      if (!this.cuts.length) return 0;
+      const n = this.cuts.length;
+      const curT = this.all[this.cursor] ? this.all[this.cursor].t : null;
+      this.cuts = [];
+      this._saveCuts();
+      this.all = this._applyCuts();
+      this.cursor = curT != null ? this._tIndex(curT) : this.cursor;
+      return n;
+    },
+    cutCount() { return this.cuts.length; },
 
     enter(fromIdx) {
       this.enabled = true;

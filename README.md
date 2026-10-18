@@ -18,13 +18,14 @@ python3 -m http.server 8765
 
 | Area | Features |
 |---|---|
-| Chart | Candles / bars / line / area, EMA 9-21-50, volume, crosshair OHLC legend, zoom (wheel), pan (drag), price-scale wheel-zoom + double-click reset |
-| Timeframes | 1m · 5m · 15m · 30m · 1H · 4H · 1D · 1W (30m/4H/1D/1W derived by aggregation) |
+| Chart | Candles / bars / line / area, EMA 9-21-50, volume, crosshair OHLC legend, zoom (wheel / pinch), pan (drag), **MT5-style price axis** — drag down to compress the whole scale (see full range), drag up to expand, double-click to reset, TradingView watermark, bar-close countdown |
+| Timeframes | 1m · 5m · 15m · 30m · 1H · 4H · 1D · 1W (30m/4H/1W derived by aggregation) |
 | Instruments | EUR/USD GBP/USD USD/JPY AUD/USD USD/CAD USD/CHF NZD/USD XAU/USD BTC/USD ETH/USD |
 | Drawing tools | Trend line, ray, horizontal, vertical, arrow, rectangle, Fib retracement, measure/ruler, text, **long/short position tool**, colour swatches, undo, clear, right-click delete — persisted per symbol |
-| Replay | Play / pause / step ±1 bar, 1x–20x speed, timeline slider, jump-to-date, keyboard: Space ← → — **future bars are hidden** so you can't peek |
+| Replay | Play / pause / step ±1 bar, 1x–20x speed, timeline slider, jump-to-date, keyboard: Space ← → — **future bars are hidden** so you can't peek. **✂ Scissors**: drag across the chart (full history shown while cutting) to remove a segment from the playback sequence — playback jumps it, so your trade's SL/TP moment plays out without noise; ↺ restores all cuts (persisted per symbol/timeframe) |
 | Trading | Market / limit / stop orders, long & short, TP/SL (draggable lines on chart), risk-% position sizing, spread, leverage & margin checks, positions / pending / history panels, win-rate stats, CSV export |
 | Account | Balance, equity, floating P/L, free margin, margin level — persisted in localStorage |
+| Mobile / Android | Touch-first layout: bottom drawing strip, Trade FAB → bottom-sheet ticket, floating replay pill, pinch-zoom & drag-pan on canvas, compact scrollable timeframes |
 | Live mode | Toggle LIVE/REPLAY. Live feed: **Twelve Data** (real forex, CORS-enabled demo key) and **Binance Vision** (stablecoin/metal proxy, `Access-Control-Allow-Origin: *`). If a live feed's price level is disjoint from bundled history (e.g. futures vs spot), it is refused automatically — the chart never shows two incompatible sources. |
 
 ## Architecture
